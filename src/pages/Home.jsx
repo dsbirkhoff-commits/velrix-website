@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import { BookingProvider, useBooking } from "../components/BookingProvider.jsx";
 import {
   Gauge,
   PhoneCall,
@@ -85,6 +86,7 @@ function useMouseGlow(rootRef) {
 
 /* ---------- Nav ---------- */
 function Nav() {
+  const { openBooking } = useBooking();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const links = [
@@ -120,9 +122,9 @@ function Nav() {
           <Link to="/demo" className="nav-link">Live demo</Link>
         </nav>
         <div className="hidden md:block">
-          <a href="#contact" onClick={(e) => { e.preventDefault(); go("#contact"); }} className="btn-gold-sm">
-            Plan een gratis adviesgesprek
-          </a>
+          <button onClick={openBooking} className="btn-gold-sm">
+            Plan een gesprek
+          </button>
         </div>
         <button className="md:hidden text-[var(--text)] p-2" onClick={() => setOpen((v) => !v)} aria-label="Menu">
           <Menu size={22} />
@@ -136,9 +138,9 @@ function Nav() {
             </a>
           ))}
           <Link to="/demo" className="mobile-link">Live demo</Link>
-          <a href="#contact" onClick={(e) => { e.preventDefault(); go("#contact"); }} className="btn-gold-sm w-full justify-center mt-2">
-            Plan een gratis adviesgesprek
-          </a>
+          <button onClick={() => { setOpen(false); openBooking(); }} className="btn-gold-sm w-full justify-center mt-2">
+            Plan een gesprek
+          </button>
         </div>
       )}
     </header>
@@ -203,6 +205,7 @@ function ChatbotPreview() {
 }
 
 function Hero() {
+  const { openBooking } = useBooking();
   const orb1 = useRef(null);
   const orb2 = useRef(null);
   useEffect(() => {
@@ -252,11 +255,11 @@ function Hero() {
             </Reveal>
             <Reveal delay={240}>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mt-10">
-                <a href="#contact" className="btn-gold btn-gold-lg group">
+                <button onClick={openBooking} className="btn-gold btn-gold-lg group">
                   <span className="btn-gold-glow" aria-hidden="true" />
-                  Plan een gratis adviesgesprek
+                  Plan een gesprek
                   <ArrowRight size={17} className="btn-arrow" />
-                </a>
+                </button>
                 <Link to="/demo" className="btn-ghost">Bekijk de live demo</Link>
               </div>
             </Reveal>
@@ -628,19 +631,16 @@ function FAQ() {
 }
 
 /* ---------- Contact ---------- */
-function CalendlyPlaceholder() {
-  const days = ["Ma", "Di", "Wo", "Do", "Vr"];
-  const slots = ["09:30", "11:00", "13:30", "15:00"];
+function BookingLauncher() {
+  const { openBooking } = useBooking();
   return (
     <div className="calendly-card">
-      <div className="calendly-head"><CalendarClock size={16} strokeWidth={1.75} /><span>Plan direct 30 minuten in</span></div>
-      <div className="calendly-days">
-        {days.map((d, i) => (<button key={d} className={`calendly-day ${i === 1 ? "calendly-day-active" : ""}`} type="button"><span className="calendly-day-name">{d}</span><span className="calendly-day-num">{12 + i}</span></button>))}
-      </div>
-      <div className="calendly-slots">
-        {slots.map((s) => (<button key={s} className="calendly-slot" type="button">{s}</button>))}
-      </div>
-      <span className="calendly-note">Voorbeeldweergave — koppel uw eigen Calendly-agenda</span>
+      <div className="calendly-head"><CalendarClock size={16} strokeWidth={1.75} /><span>Gratis kennismaking — 30 minuten</span></div>
+      <p className="calendly-launcher-text">Kies zelf een moment dat uitkomt. U ziet alleen tijden waarop ik ook echt beschikbaar ben.</p>
+      <button onClick={openBooking} className="btn-gold w-full justify-center">
+        <CalendarClock size={16} /> Plan een gesprek
+      </button>
+      <span className="calendly-note">Beschikbare tijden worden automatisch aangepast aan mijn agenda.</span>
     </div>
   );
 }
@@ -666,7 +666,7 @@ function Contact() {
                 <div className="contact-detail"><Clock size={17} strokeWidth={1.75} /><span>Reactie binnen 1 werkdag</span></div>
               </div>
               <div className="contact-divider" />
-              <CalendlyPlaceholder />
+              <BookingLauncher />
             </div>
           </Reveal>
           <Reveal delay={100}>
@@ -934,7 +934,8 @@ export default function Home() {
         .calendly-slots { display:grid; grid-template-columns: repeat(2,1fr); gap:8px; margin-bottom:12px; }
         .calendly-slot { padding:9px; border-radius:9px; border:1px solid var(--border-strong); background:transparent; color: var(--text-muted); font-size:12.5px; cursor:pointer; }
         .calendly-slot:hover { border-color: var(--gold-dim); color: var(--text); }
-        .calendly-note { display:block; font-size:10.5px; color: var(--text-dim); text-align:center; }
+        .calendly-note { display:block; font-size:10.5px; color: var(--text-dim); text-align:center; margin-top:10px; }
+        .calendly-launcher-text { font-size:13px; color: var(--text-muted); line-height:1.55; margin-bottom:16px; }
         .contact-form { display:flex; flex-direction:column; gap:18px; } .field { display:flex; flex-direction:column; gap:7px; } .field-label { font-size:12.5px; color: var(--text-dim); }
         .field-input { background: var(--ink-2); border:1px solid var(--border-strong); border-radius:10px; padding:12px 14px; font-size:14.5px; color: var(--text); font-family:'Inter',sans-serif; outline:none; }
         .field-input:focus { border-color: var(--gold-dim); box-shadow: 0 0 0 3px rgba(201,166,104,.12); } .field-textarea { resize:vertical; min-height:100px; }
@@ -958,22 +959,24 @@ export default function Home() {
         @media (prefers-reduced-motion: reduce) { .velrix-home *, .velrix-home *::before, .velrix-home *::after { animation:none !important; transition:none !important; } }
       `}</style>
 
-      <Nav />
-      <main>
-        <Hero />
-        <TrustBand />
-        <Services />
-        <ProcessTimeline />
-        <WhyUs />
-        <Guarantees />
-        <CaseStudy />
-        <ScanSection />
-        <DemoTeaser />
-        <Pricing />
-        <FAQ />
-        <Contact />
-      </main>
-      <Footer />
+      <BookingProvider>
+        <Nav />
+        <main>
+          <Hero />
+          <TrustBand />
+          <Services />
+          <ProcessTimeline />
+          <WhyUs />
+          <Guarantees />
+          <CaseStudy />
+          <ScanSection />
+          <DemoTeaser />
+          <Pricing />
+          <FAQ />
+          <Contact />
+        </main>
+        <Footer />
+      </BookingProvider>
     </div>
   );
 }
