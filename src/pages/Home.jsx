@@ -29,6 +29,7 @@ import {
   Cpu,
   CalendarClock,
   Loader2,
+  Mic,
 } from "lucide-react";
 
 /* ---------- Reveal on scroll ---------- */
@@ -120,6 +121,7 @@ function Nav() {
             </a>
           ))}
           <Link to="/demo" className="nav-link">Live demo</Link>
+          <Link to="/voice-demo" className="nav-link">Voice AI</Link>
         </nav>
         <div className="hidden md:block">
           <button onClick={openBooking} className="btn-gold-sm">
@@ -138,6 +140,7 @@ function Nav() {
             </a>
           ))}
           <Link to="/demo" className="mobile-link">Live demo</Link>
+          <Link to="/voice-demo" className="mobile-link">Voice AI</Link>
           <button onClick={() => { setOpen(false); openBooking(); }} className="btn-gold-sm w-full justify-center mt-2">
             Plan een gesprek
           </button>
@@ -554,6 +557,17 @@ function DemoTeaser() {
             Bekijk de demo<ArrowRight size={17} />
           </Link>
         </div>
+
+        <div className="demo-teaser-card demo-teaser-voice">
+          <div>
+            <span className="eyebrow-mono">Praat er zelf mee</span>
+            <h2 className="section-title mt-4">Praat met VELRIX Voice AI.</h2>
+            <p className="section-sub mt-3">Geen video, geen script dat u alleen maar bekijkt — spreek zelf, live, tegen de AI-receptionist van onze demogarage.</p>
+          </div>
+          <Link to="/voice-demo" className="btn-gold btn-gold-lg">
+            <Mic size={17} /> Start gesprek
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -905,6 +919,7 @@ export default function Home() {
         .scan-note { margin-top:16px; font-size:12px; color: var(--text-dim); }
 
         .demo-teaser-card { border:1px solid var(--border-strong); border-radius:20px; background: linear-gradient(180deg, rgba(201,166,104,.06), var(--surface)); padding:40px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:24px; }
+        .demo-teaser-voice { margin-top:20px; }
 
         .price-card { position:relative; display:flex; flex-direction:column; border:1px solid var(--border); background: var(--surface); border-radius:20px; padding:32px; height:100%; transition:.35s; }
         .price-card:hover { transform: translateY(-5px); border-color: var(--border-strong); }
