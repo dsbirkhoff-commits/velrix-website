@@ -1,4 +1,4 @@
-import { isConfigured, getTimezone, getCalendarClient } from "./_googleCalendar.js";
+import { isConfigured, getTimezone, getCalendarClient, getCalendarId } from "./_googleCalendar.js";
 
 const BUSINESS_HOURS = { startHour: 9, endHour: 17 };
 const SLOT_STEP_MIN = 30;
@@ -29,6 +29,7 @@ export default async function handler(req, res) {
   try {
     const calendar = await getCalendarClient();
     const timeZone = getTimezone();
+    const calendarId = getCalendarId();
 
     const dayStart = new Date(`${date}T00:00:00`);
     const dayEnd = new Date(`${date}T23:59:59`);
@@ -38,11 +39,11 @@ export default async function handler(req, res) {
         timeMin: dayStart.toISOString(),
         timeMax: dayEnd.toISOString(),
         timeZone,
-        items: [{ id: process.env.GOOGLE_CALENDAR_ID }],
+        items: [{ id: calendarId }],
       },
     });
 
-    const busy = freebusy.data.calendars?.[process.env.GOOGLE_CALENDAR_ID]?.busy || [];
+    const busy = freebusy.data.calendars?.[calendarId]?.busy || [];
 
     const slots = [];
     for (let h = BUSINESS_HOURS.startHour; h < BUSINESS_HOURS.endHour; h++) {

@@ -1,4 +1,4 @@
-import { isConfigured, getTimezone, getCalendarClient } from "./_googleCalendar.js";
+import { isConfigured, getTimezone, getCalendarClient, getCalendarId } from "./_googleCalendar.js";
 
 const MEETING_DURATION_MIN = 30;
 
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     const end = new Date(start.getTime() + MEETING_DURATION_MIN * 60000);
 
     const event = await calendar.events.insert({
-      calendarId: process.env.GOOGLE_CALENDAR_ID,
+      calendarId: getCalendarId(),
       sendUpdates: "all",
       requestBody: {
         summary: `VELRIX kennismaking — ${name}`,

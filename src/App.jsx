@@ -7,6 +7,7 @@ import Contact from "./pages/Contact.jsx";
 import PlanMeeting from "./pages/PlanMeeting.jsx";
 import Terms from "./pages/Terms.jsx";
 import Privacy from "./pages/Privacy.jsx";
+import AdminConnect from "./pages/AdminConnect.jsx";
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/plan-een-gesprek" element={<PlanMeeting />} />
           <Route path="/algemene-voorwaarden" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/admin/koppel-agenda" element={<AdminConnect />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </BookingProvider>
