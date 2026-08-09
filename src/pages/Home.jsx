@@ -580,13 +580,30 @@ function BookingLauncher() {
 }
 
 function Contact() {
-  const [form, setForm] = useState({ naam: "", email: "", bedrijf: "", bericht: "" });
-  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({ naam: "", email: "", bedrijf: "", bericht: "", telefoon: "", website: "" });
+  const [status, setStatus] = useState("idle"); // idle | submitting | success | error
+  const [errorMsg, setErrorMsg] = useState("");
   const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.naam || !form.email || !form.bericht) return;
-    setSubmitted(true);
+    setStatus("submitting");
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Onbekende fout");
+      }
+      setStatus("success");
+    } catch {
+      setStatus("error");
+      setErrorMsg("Er ging iets mis bij het versturen. Probeer het opnieuw of mail ons rechtstreeks via daniel@velrix.nl.");
+    }
   };
   return (
     <section id="contact" className="section">
@@ -605,11 +622,11 @@ function Contact() {
           </Reveal>
           <Reveal delay={100}>
             <div className="contact-form-card">
-              {submitted ? (
+              {status === "success" ? (
                 <div className="contact-success">
                   <div className="contact-success-icon"><Check size={22} strokeWidth={2.5} /></div>
-                  <h3 className="guarantee-title">Bericht verstuurd</h3>
-                  <p className="guarantee-desc mt-2">Bedankt, {form.naam.split(" ")[0]}. We nemen binnen één werkdag contact met u op.</p>
+                  <h3 className="guarantee-title">Bedankt voor je aanvraag.</h3>
+                  <p className="guarantee-desc mt-2">Je bericht is goed ontvangen. We nemen zo snel mogelijk contact met je op.</p>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="contact-form">
@@ -617,9 +634,21 @@ function Contact() {
                     <div className="field"><label className="field-label" htmlFor="naam">Naam</label><input id="naam" className="field-input" placeholder="Uw volledige naam" value={form.naam} onChange={update("naam")} required /></div>
                     <div className="field"><label className="field-label" htmlFor="email">E-mailadres</label><input id="email" type="email" className="field-input" placeholder="naam@garage.nl" value={form.email} onChange={update("email")} required /></div>
                   </div>
-                  <div className="field"><label className="field-label" htmlFor="bedrijf">Garagenaam</label><input id="bedrijf" className="field-input" placeholder="Naam van uw garage" value={form.bedrijf} onChange={update("bedrijf")} /></div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="field"><label className="field-label" htmlFor="bedrijf">Garagenaam</label><input id="bedrijf" className="field-input" placeholder="Naam van uw garage" value={form.bedrijf} onChange={update("bedrijf")} /></div>
+                    <div className="field"><label className="field-label" htmlFor="telefoon">Telefoonnummer (optioneel)</label><input id="telefoon" className="field-input" placeholder="06 12345678" value={form.telefoon} onChange={update("telefoon")} /></div>
+                  </div>
                   <div className="field"><label className="field-label" htmlFor="bericht">Waar kunnen we mee helpen?</label><textarea id="bericht" className="field-input field-textarea" placeholder="Vertel kort over uw garage..." rows={4} value={form.bericht} onChange={update("bericht")} required /></div>
-                  <button type="submit" className="btn-gold w-full justify-center">Verstuur aanvraag<ArrowRight size={16} /></button>
+                  {/* Honeypot — hidden from real visitors via CSS, bots that auto-fill every field will trip it */}
+                  <div style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }} aria-hidden="true">
+                    <label htmlFor="website">Website</label>
+                    <input id="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={update("website")} />
+                  </div>
+                  {status === "error" && <p style={{ color: "#e6947a", fontSize: 13, textAlign: "center" }}>{errorMsg}</p>}
+                  <button type="submit" className="btn-gold w-full justify-center" disabled={status === "submitting"}>
+                    {status === "submitting" ? "Versturen…" : "Verstuur aanvraag"}
+                    <ArrowRight size={16} />
+                  </button>
                 </form>
               )}
             </div>
