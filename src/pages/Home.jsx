@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { BookingProvider, useBooking } from "../components/BookingProvider.jsx";
+import { useBooking } from "../components/BookingProvider.jsx";
+import SiteNav from "../components/SiteNav.jsx";
+import SiteFooter from "../components/SiteFooter.jsx";
 import {
   Gauge,
   PhoneCall,
@@ -11,7 +13,6 @@ import {
   ArrowUpRight,
   Check,
   X,
-  Menu,
   Mail,
   Clock,
   ChevronDown,
@@ -20,10 +21,6 @@ import {
   Hammer,
   FlaskConical,
   Rocket,
-  Linkedin,
-  Instagram,
-  Youtube,
-  Twitter,
   Users,
   Languages,
   Cpu,
@@ -82,69 +79,6 @@ function useMouseGlow(rootRef) {
     window.addEventListener("mousemove", handle, { passive: true });
     return () => window.removeEventListener("mousemove", handle);
   }, [rootRef]);
-}
-
-/* ---------- Nav ---------- */
-function Nav() {
-  const { openBooking } = useBooking();
-  const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const links = [
-    { href: "#diensten", label: "Diensten" },
-    { href: "#waarom-wij", label: "Waarom wij" },
-    { href: "#prijzen", label: "Prijzen" },
-    { href: "#faq", label: "FAQ" },
-  ];
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-  const go = (href) => {
-    setOpen(false);
-    document.querySelector(href)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-  return (
-    <header className={`nav-wrap ${scrolled ? "nav-scrolled" : ""}`}>
-      <div className="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between h-[72px]">
-        <a href="#home" onClick={(e) => { e.preventDefault(); go("#home"); }} className="flex items-center gap-2.5">
-          <span className="brand-mark"><Gauge size={16} strokeWidth={2} /></span>
-          <span className="brand-word">VELRIX</span>
-          <span className="brand-suffix">Reception</span>
-        </a>
-        <nav className="hidden md:flex items-center gap-8">
-          {links.map((l) => (
-            <a key={l.href} href={l.href} onClick={(e) => { e.preventDefault(); go(l.href); }} className="nav-link">
-              {l.label}
-            </a>
-          ))}
-          <Link to="/demo" className="nav-link">Live demo</Link>
-        </nav>
-        <div className="hidden md:block">
-          <button onClick={openBooking} className="btn-gold-sm">
-            Plan een gesprek
-          </button>
-        </div>
-        <button className="md:hidden text-[var(--text)] p-2" onClick={() => setOpen((v) => !v)} aria-label="Menu">
-          <Menu size={22} />
-        </button>
-      </div>
-      {open && (
-        <div className="md:hidden mobile-menu">
-          {links.map((l) => (
-            <a key={l.href} href={l.href} onClick={(e) => { e.preventDefault(); go(l.href); }} className="mobile-link">
-              {l.label}
-            </a>
-          ))}
-          <Link to="/demo" className="mobile-link">Live demo</Link>
-          <button onClick={() => { setOpen(false); openBooking(); }} className="btn-gold-sm w-full justify-center mt-2">
-            Plan een gesprek
-          </button>
-        </div>
-      )}
-    </header>
-  );
 }
 
 /* ---------- Hero ---------- */
@@ -662,7 +596,7 @@ function Contact() {
           <Reveal>
             <div className="contact-info-card">
               <div className="contact-detail-list">
-                <div className="contact-detail"><Mail size={17} strokeWidth={1.75} /><span>[e-mailadres]</span></div>
+                <div className="contact-detail"><Mail size={17} strokeWidth={1.75} /><a href="mailto:daniel@velrix.nl">daniel@velrix.nl</a></div>
                 <div className="contact-detail"><Clock size={17} strokeWidth={1.75} /><span>Reactie binnen 1 werkdag</span></div>
               </div>
               <div className="contact-divider" />
@@ -696,71 +630,17 @@ function Contact() {
   );
 }
 
-/* ---------- Footer ---------- */
-function Footer() {
-  const [email, setEmail] = useState("");
-  const [subscribed, setSubscribed] = useState(false);
-  const socials = [
-    { icon: Linkedin, label: "LinkedIn" },
-    { icon: Instagram, label: "Instagram" },
-    { icon: Twitter, label: "X" },
-    { icon: Youtube, label: "YouTube" },
-  ];
-  return (
-    <footer className="footer">
-      <div className="max-w-7xl mx-auto px-6 lg:px-10 py-16">
-        <div className="footer-newsletter glass-card">
-          <div>
-            <h3 className="guarantee-title">Blijf op de hoogte</h3>
-            <p className="guarantee-desc mt-1">Praktische AI-inzichten voor autogarages.</p>
-          </div>
-          {subscribed ? (
-            <div className="footer-subscribed"><Check size={16} /> Bedankt voor uw aanmelding</div>
-          ) : (
-            <form className="footer-form" onSubmit={(e) => { e.preventDefault(); if (email) setSubscribed(true); }}>
-              <label htmlFor="newsletter" className="sr-only">E-mailadres voor nieuwsbrief</label>
-              <input id="newsletter" type="email" required placeholder="naam@garage.nl" value={email} onChange={(e) => setEmail(e.target.value)} />
-              <button type="submit">Aanmelden</button>
-            </form>
-          )}
-        </div>
-        <div className="grid md:grid-cols-[1.3fr_1fr_1fr_1fr] gap-10 mt-16">
-          <div>
-            <div className="flex items-center gap-2.5 mb-4">
-              <span className="brand-mark"><Gauge size={16} strokeWidth={2} /></span>
-              <span className="brand-word">VELRIX</span>
-            </div>
-            <p className="footer-desc">Intelligent systems for business.</p>
-            <div className="footer-socials">
-              {socials.map((s) => (<a key={s.label} href="#" className="footer-social" aria-label={s.label}><s.icon size={16} strokeWidth={1.75} /></a>))}
-            </div>
-          </div>
-          <div>
-            <h4 className="footer-heading">Diensten</h4>
-            <ul className="footer-list"><li>Digitale receptionist</li><li>24/7 klantenservice</li><li>Werkplaats automatisering</li><li>Garage-website</li></ul>
-          </div>
-          <div>
-            <h4 className="footer-heading">Bedrijf</h4>
-            <ul className="footer-list"><li>Waarom wij</li><li>Prijzen</li><li>Veelgestelde vragen</li><li>Contact</li></ul>
-          </div>
-          <div>
-            <h4 className="footer-heading">Contact</h4>
-            <ul className="footer-list"><li>[e-mailadres]</li><li>[telefoonnummer]</li><li>[website]</li></ul>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <span>© {new Date().getFullYear()} VELRIX. Alle rechten voorbehouden. KvK: volgt · BTW: volgt</span>
-          <div className="flex gap-6"><span>Privacybeleid</span><span>Algemene voorwaarden</span></div>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
-/* ---------- Root ---------- */
 export default function Home() {
   const rootRef = useRef(null);
   useMouseGlow(rootRef);
+
+  // Coming from another page via "/#diensten" style links — scroll once mounted.
+  useEffect(() => {
+    if (window.location.hash) {
+      const el = document.querySelector(window.location.hash);
+      if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    }
+  }, []);
 
   return (
     <div className="velrix-home" ref={rootRef}>
@@ -960,24 +840,22 @@ export default function Home() {
         @media (prefers-reduced-motion: reduce) { .velrix-home *, .velrix-home *::before, .velrix-home *::after { animation:none !important; transition:none !important; } }
       `}</style>
 
-      <BookingProvider>
-        <Nav />
-        <main>
-          <Hero />
-          <TrustBand />
-          <Services />
-          <ProcessTimeline />
-          <WhyUs />
-          <Guarantees />
-          <CaseStudy />
-          <ScanSection />
-          <DemoTeaser />
-          <Pricing />
-          <FAQ />
-          <Contact />
-        </main>
-        <Footer />
-      </BookingProvider>
+      <SiteNav />
+      <main>
+        <Hero />
+        <TrustBand />
+        <Services />
+        <ProcessTimeline />
+        <WhyUs />
+        <Guarantees />
+        <CaseStudy />
+        <ScanSection />
+        <DemoTeaser />
+        <Pricing />
+        <FAQ />
+        <Contact />
+      </main>
+      <SiteFooter />
     </div>
   );
 }

@@ -41,7 +41,7 @@ export async function getAvailability(dateISO) {
 }
 
 /**
- * @param {{ dateISO:string, time:string, name:string, email:string, phone?:string }} payload
+ * @param {{ dateISO:string, time:string, name:string, email:string }} payload
  * @returns {Promise<{ source: "google-calendar"|"mock", confirmationId: string, htmlLink?: string }>}
  */
 export async function createBooking(payload) {

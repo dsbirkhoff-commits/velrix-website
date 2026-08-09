@@ -34,7 +34,7 @@ export default function BookingModal({ onClose }) {
   const [slots, setSlots] = useState([]);
   const [slotsSource, setSlotsSource] = useState(null); // "mock" | "google-calendar"
   const [loadingSlots, setLoadingSlots] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", phone: "" });
+  const [form, setForm] = useState({ name: "", email: "" });
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null); // { source, confirmationId, htmlLink }
   const [error, setError] = useState(null);
@@ -84,7 +84,6 @@ export default function BookingModal({ onClose }) {
         time: selectedTime,
         name: form.name.trim(),
         email: form.email.trim(),
-        phone: form.phone.trim() || undefined,
       });
       setResult(res);
       setStepIndex(4);
@@ -178,7 +177,7 @@ export default function BookingModal({ onClose }) {
         <button className="bk-close" onClick={onClose} aria-label="Sluiten"><X size={18} /></button>
 
         <div className="bk-head">
-          <span className="bk-eyebrow"><Sparkles size={12} /> {bookingMeta.title} — {bookingMeta.durationMinutes} minuten</span>
+          <span className="bk-eyebrow"><Sparkles size={12} /> Plan een gratis kennismaking</span>
           <h2 className="bk-title">
             {stepIndex === 0 && "Kies een datum"}
             {stepIndex === 1 && "Kies een tijd"}
@@ -188,7 +187,7 @@ export default function BookingModal({ onClose }) {
           </h2>
           {stepIndex < 4 && (
             <>
-              <p className="bk-sub">Vrijblijvend kennismakingsgesprek van 30 minuten met VELRIX.</p>
+              <p className="bk-sub">30 minuten om te bespreken hoe VELRIX AI en automatisering voor jouw bedrijf kan inzetten.</p>
               <div className="bk-agenda-note"><CalendarClock size={13} /> Beschikbare tijden worden automatisch aangepast aan mijn agenda.</div>
             </>
           )}
@@ -233,7 +232,7 @@ export default function BookingModal({ onClose }) {
               )}
               <div className="bk-badge-row">
                 {slotsSource === "mock" ? (
-                  <span className="bk-badge bk-badge-mock">Demo-modus — voorbeeldbeschikbaarheid, nog geen live Google Calendar-koppeling</span>
+                  <span className="bk-badge bk-badge-mock">Testmodus — voorbeeldbeschikbaarheid, nog geen live Google Calendar-koppeling</span>
                 ) : slotsSource === "google-calendar" ? (
                   <span className="bk-badge bk-badge-real"><Check size={11} /> Live gekoppeld aan Google Calendar</span>
                 ) : null}
@@ -255,10 +254,6 @@ export default function BookingModal({ onClose }) {
                 <label className="bk-label" htmlFor="bk-email">E-mailadres<span>*</span></label>
                 <input id="bk-email" type="email" className="bk-input" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="naam@garage.nl" />
               </div>
-              <div className="bk-field">
-                <label className="bk-label" htmlFor="bk-phone">Telefoonnummer (optioneel)</label>
-                <input id="bk-phone" className="bk-input" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="06 12345678" />
-              </div>
               <div className="bk-footer">
                 <button className="bk-back" onClick={() => setStepIndex(1)}><ChevronLeft size={15} /> Terug</button>
                 <button className="bk-primary" disabled={!canGoDetails} onClick={() => setStepIndex(3)}>
@@ -277,11 +272,10 @@ export default function BookingModal({ onClose }) {
                 <div className="bk-summary-row"><span className="k">Tijd</span><span className="v">{selectedTime}</span></div>
                 <div className="bk-summary-row"><span className="k">Naam</span><span className="v">{form.name}</span></div>
                 <div className="bk-summary-row"><span className="k">E-mail</span><span className="v">{form.email}</span></div>
-                {form.phone && <div className="bk-summary-row"><span className="k">Telefoon</span><span className="v">{form.phone}</span></div>}
               </div>
               <div className="bk-badge-row">
                 {slotsSource === "mock" ? (
-                  <span className="bk-badge bk-badge-mock">Testboeking — wordt niet echt in Google Calendar gezet</span>
+                  <span className="bk-badge bk-badge-mock">Testmodus — deze afspraak wordt niet echt in Google Calendar gezet</span>
                 ) : (
                   <span className="bk-badge bk-badge-real"><Check size={11} /> Wordt echt toegevoegd aan de agenda</span>
                 )}
@@ -301,13 +295,16 @@ export default function BookingModal({ onClose }) {
           {stepIndex === 4 && result && (
             <div className="bk-success">
               <div className="bk-success-icon"><Check size={26} strokeWidth={2.5} /></div>
-              <h3 style={{ fontSize: 19, fontWeight: 600 }}>
-                {result.source === "google-calendar" ? "Afspraak ingepland" : "Testboeking voltooid"}
-              </h3>
-              <p className="bk-success-detail">
-                {selectedDate && formatDateLabel(selectedDate)} om {selectedTime} — {bookingMeta.title}<br />
-                Bevestigingsnummer: {result.confirmationId}
-              </p>
+              <h3 style={{ fontSize: 19, fontWeight: 600 }}>Afspraak bevestigd</h3>
+              <p className="bk-success-detail">Je kennismaking met VELRIX staat gepland.</p>
+
+              <div className="bk-summary" style={{ textAlign: "left", marginTop: 18 }}>
+                <div className="bk-summary-row"><span className="k">Datum</span><span className="v">{selectedDate && formatDateLabel(selectedDate)}</span></div>
+                <div className="bk-summary-row"><span className="k">Tijd</span><span className="v">{selectedTime}</span></div>
+                <div className="bk-summary-row"><span className="k">Type gesprek</span><span className="v">{bookingMeta.title}</span></div>
+                <div className="bk-summary-row"><span className="k">E-mailadres</span><span className="v">{form.email}</span></div>
+              </div>
+
               {result.source === "google-calendar" ? (
                 <>
                   <p className="bk-success-detail">U ontvangt een uitnodiging per e-mail op {form.email}.</p>
@@ -319,7 +316,7 @@ export default function BookingModal({ onClose }) {
                 </>
               ) : (
                 <div className="bk-badge-row" style={{ marginTop: 14 }}>
-                  <span className="bk-badge bk-badge-mock">Demo-modus — dit is geen echte afspraak in Google Calendar</span>
+                  <span className="bk-badge bk-badge-mock">Testmodus — dit is geen echte afspraak in Google Calendar (referentie: {result.confirmationId})</span>
                 </div>
               )}
               <div className="bk-footer" style={{ justifyContent: "center", marginTop: 24 }}>

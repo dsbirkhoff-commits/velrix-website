@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { dateISO, time, name, email, phone } = req.body || {};
+  const { dateISO, time, name, email } = req.body || {};
 
   if (!dateISO || !time || !name || !email) {
     res.status(400).json({ error: "dateISO, time, name en email zijn verplicht." });
@@ -36,13 +36,8 @@ export default async function handler(req, res) {
       calendarId: process.env.GOOGLE_CALENDAR_ID,
       sendUpdates: "all",
       requestBody: {
-        summary: `Gratis kennismaking — ${name} (VELRIX)`,
-        description: [
-          "Gratis kennismaking (30 min) via velrix.nl",
-          phone ? `Telefoon: ${phone}` : null,
-        ]
-          .filter(Boolean)
-          .join("\n"),
+        summary: `VELRIX kennismaking — ${name}`,
+        description: "Gratis kennismaking (30 min) via velrix.nl",
         start: { dateTime: start.toISOString(), timeZone },
         end: { dateTime: end.toISOString(), timeZone },
         attendees: [{ email, displayName: name }],
