@@ -3,18 +3,36 @@
  *
  * IMPORTANT: this is intent-matching + scripted state transitions, not a
  * real language model. It only understands the phrasings it's built to
- * recognize. A production version would swap this module for a real LLM
- * (with a paid API) while keeping the same interface — see README notes.
+ * recognize, never invents facts (prices, addresses, availability), and
+ * says so plainly when a question falls outside the demo knowledge base.
+ *
+ * Interface contract (kept stable on purpose — see PRODUCTION ROADMAP
+ * in /docs/voice-ai-roadmap.md):
+ *
+ *   nextTurn({ step, context, userText }) => {
+ *     aiText: string,
+ *     nextStep: string,
+ *     context?: object,
+ *     showSlots?: boolean,
+ *     demoBooking?: { service, slot, namePlate } | null,
+ *   }
+ *
+ * A future production version can swap the *implementation* of nextTurn()
+ * for a real LLM call (server-side, behind an /api route so no key ever
+ * reaches the browser) while every caller — the UI, the speech hook —
+ * stays exactly the same.
  */
 
 export const DEMO_GARAGE = {
   name: "VELRIX Demo Garage",
   services: ["APK", "Onderhoud", "Reparatie", "Bandenwissel", "Airco", "Diagnose"],
-  hoursText: "maandag t/m vrijdag van 08:00 tot 17:30, en zaterdag van 09:00 tot 14:00. Op zondag zijn we gesloten.",
+  hoursText: "maandag tot en met vrijdag van 08:00 tot 17:30, en zaterdag van 09:00 tot 14:00. Op zondag zijn we gesloten.",
 };
 
 // Fixed example slots, exactly as specified — not tied to any real calendar.
-const DEMO_SLOTS = ["Donderdag 10:00", "Donderdag 14:30", "Vrijdag 09:00"];
+export const DEMO_SLOTS = ["Donderdag 10:00", "Donderdag 14:30", "Vrijdag 09:00"];
+
+const OUT_OF_SCOPE_REPLY = "Dat kan ik in deze demo niet betrouwbaar voor u beantwoorden.";
 
 function norm(text) {
   return (text || "").toLowerCase().trim();
@@ -28,28 +46,28 @@ function detectIntent(text) {
   const t = norm(text);
   if (matchesAny(t, ["apk", "keuring", "keuren"])) return "apk";
   if (matchesAny(t, ["onderhoud", "beurt", "servicebeurt"])) return "onderhoud";
-  if (matchesAny(t, ["reparatie", "kapot", "defect", "storing"])) return "reparatie";
+  if (matchesAny(t, ["reparatie", "repareren", "repareer", "kapot", "defect", "storing"])) return "reparatie";
   if (matchesAny(t, ["band", "banden", "lekke band"])) return "banden";
   if (matchesAny(t, ["airco"])) return "airco";
   if (matchesAny(t, ["diagnose", "lampje", "controlelamp"])) return "diagnose";
   if (matchesAny(t, ["open", "openingstijd", "geopend", "hoe laat"])) return "hours";
   if (matchesAny(t, ["prijs", "kost", "duur", "kosten"])) return "price";
+  if (matchesAny(t, ["waar zit", "waar zitten", "adres", "locatie", "waar ben"])) return "location";
+  if (matchesAny(t, ["morgen langs", "langskomen", "afspraak maken", "kan ik langskomen"])) return "generic_appointment";
   return "unknown";
 }
 
 function matchSlot(text) {
   const t = norm(text);
-  return DEMO_SLOTS.find((slot) => {
-    const [day, time] = slot.split(" ");
-    return t.includes(day.toLowerCase()) || t.includes(time);
-  });
+  // Match on the exact time first — times are unique per slot, so this is
+  // unambiguous even when the day is also mentioned ("donderdag 14:30").
+  const byTime = DEMO_SLOTS.find((slot) => t.includes(slot.split(" ")[1]));
+  if (byTime) return byTime;
+  // Fall back to day-only matching (e.g. just "donderdag") — picks the
+  // first slot on that day.
+  return DEMO_SLOTS.find((slot) => t.includes(slot.split(" ")[0].toLowerCase()));
 }
 
-/**
- * Pure function: given the current step + the user's (transcribed) utterance
- * + demo context (e.g. simulateClosed), returns what the AI says next and
- * which step to move to. No side effects, easy to unit test.
- */
 export function nextTurn({ step, context, userText }) {
   const t = norm(userText);
 
@@ -71,22 +89,21 @@ export function nextTurn({ step, context, userText }) {
       if (intent === "hours") {
         return { aiText: `We zijn ${DEMO_GARAGE.hoursText} Waar kan ik u verder mee helpen?`, nextStep: "await_intent" };
       }
-      if (intent === "price") {
-        return {
-          aiText:
-            "Dat kan ik zo zonder de auto gezien te hebben niet exact zeggen. Zullen we een moment inplannen zodat we ernaar kunnen kijken?",
-          nextStep: "await_intent",
-        };
+      if (intent === "price" || intent === "location") {
+        return { aiText: `${OUT_OF_SCOPE_REPLY} Waar kan ik u verder mee helpen?`, nextStep: "await_intent" };
       }
       if (intent === "apk") {
-        return { aiText: "Natuurlijk. Ik kan u daarbij helpen. Wanneer zou u ongeveer langs willen komen?", nextStep: "await_slot", context: { ...context, flow: "apk" } };
+        return { aiText: "Natuurlijk. Wanneer zou u ongeveer langs willen komen?", nextStep: "await_slot", context: { ...context, flow: "apk", service: "APK-keuring" } };
       }
       if (intent === "onderhoud") {
-        return { aiText: "Dat kunnen we regelen. Weet u toevallig welk type onderhoud uw auto nodig heeft?", nextStep: "onderhoud_detail", context: { ...context, flow: "onderhoud" } };
+        return { aiText: "Dat kunnen we regelen. Weet u toevallig welk type onderhoud uw auto nodig heeft?", nextStep: "onderhoud_detail", context: { ...context, flow: "onderhoud", service: "Onderhoudsbeurt" } };
+      }
+      if (intent === "generic_appointment") {
+        return { aiText: "Zeker, dat kunnen we inplannen. Wanneer zou u ongeveer langs willen komen?", nextStep: "await_slot", context: { ...context, flow: "afspraak", service: "Afspraak" } };
       }
       if (["reparatie", "banden", "airco", "diagnose"].includes(intent)) {
-        const label = { reparatie: "een reparatie", banden: "een bandenwissel", airco: "de airco", diagnose: "een diagnose" }[intent];
-        return { aiText: `Duidelijk, ${label}. Zullen we daar een moment voor inplannen?`, nextStep: "await_slot", context: { ...context, flow: intent } };
+        const service = { reparatie: "Reparatie", banden: "Bandenwissel", airco: "Airco-onderhoud", diagnose: "Diagnose" }[intent];
+        return { aiText: `Duidelijk, ${service.toLowerCase()}. Zullen we daar een moment voor inplannen?`, nextStep: "await_slot", context: { ...context, flow: intent, service } };
       }
       return {
         aiText: "Sorry, dat versta ik niet helemaal. Gaat het om een APK, onderhoud, reparatie, bandenwissel, airco of een diagnose?",
@@ -95,7 +112,6 @@ export function nextTurn({ step, context, userText }) {
     }
 
     case "onderhoud_detail": {
-      // We don't invent specifics — just acknowledge naturally and move to scheduling.
       return {
         aiText: "Duidelijk, dank u. Zullen we gelijk een moment inplannen zodat we ernaar kunnen kijken?",
         nextStep: "await_slot",
@@ -103,16 +119,16 @@ export function nextTurn({ step, context, userText }) {
     }
 
     case "await_slot": {
-      const slot = matchSlot(t) || context.pendingSlotFromClick;
+      const slot = matchSlot(t);
       if (!slot) {
         return {
-          aiText: `Ik heb nog geen tijd verstaan. Dit zijn de opties: ${DEMO_SLOTS.join(", ")}. Welke komt u uit?`,
+          aiText: `Dit zijn de opties voor deze demo: ${DEMO_SLOTS.join(", ")}. Welke komt u uit?`,
           nextStep: "await_slot",
           showSlots: true,
         };
       }
       return {
-        aiText: `Prima. Dan zet ik de afspraak voorlopig op ${slot.toLowerCase()}. Mag ik uw naam en kenteken?`,
+        aiText: `Prima. Voor deze demo zet ik ${slot.toLowerCase()} als gekozen tijd. Mag ik uw naam en kenteken?`,
         nextStep: "await_name_plate",
         context: { ...context, chosenSlot: slot },
       };
@@ -122,10 +138,12 @@ export function nextTurn({ step, context, userText }) {
       if (!userText || userText.trim().length < 2) {
         return { aiText: "Sorry, ik heb dat niet goed verstaan. Mag ik uw naam en kenteken nog eens?", nextStep: "await_name_plate" };
       }
+      const namePlate = userText.trim();
       return {
-        aiText: `Dank u wel. Ik heb de afspraak voor ${context.chosenSlot.toLowerCase()} voor u genoteerd als testafspraak.`,
+        aiText: "Bedankt. De demo-afspraak staat klaar.",
         nextStep: "confirmed",
-        context: { ...context, namePlate: userText.trim() },
+        context: { ...context, namePlate },
+        demoBooking: { service: context.service || "Afspraak", slot: context.chosenSlot, namePlate },
       };
     }
 
@@ -135,9 +153,10 @@ export function nextTurn({ step, context, userText }) {
 
     case "closed_intake_contact": {
       return {
-        aiText: "Genoteerd. We nemen tijdens openingstijden contact met u op. Fijne dag verder.",
+        aiText: "Genoteerd voor deze demo. In het echte product nemen we tijdens openingstijden contact met u op. Fijne dag verder.",
         nextStep: "confirmed",
         context: { ...context, closedContact: userText },
+        demoBooking: { service: "Terugbelverzoek (demo)", slot: null, namePlate: userText },
       };
     }
 
@@ -145,5 +164,3 @@ export function nextTurn({ step, context, userText }) {
       return { aiText: "Dank u voor het gesprek. Tot ziens.", nextStep: "confirmed" };
   }
 }
-
-export { DEMO_SLOTS };

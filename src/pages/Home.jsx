@@ -565,7 +565,7 @@ function DemoTeaser() {
             <p className="section-sub mt-3">Geen video, geen script dat u alleen maar bekijkt — spreek zelf, live, tegen de AI-receptionist van onze demogarage.</p>
           </div>
           <Link to="/voice-demo" className="btn-gold btn-gold-lg">
-            <Mic size={17} /> Start gesprek
+            <Mic size={17} /> Start Voice Demo
           </Link>
         </div>
       </div>
