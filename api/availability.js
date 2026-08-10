@@ -1,4 +1,4 @@
-import { isConfigured, getTimezone, getCalendarClient, getCalendarId, getBusyForDay, overlapsBusy, MEETING_DURATION_MIN } from "./_googleCalendar.js";
+import { isConfigured, getTimezone, getCalendarClient, getCalendarId, getBusyForDay, overlapsBusy, zonedWallTimeToUtcDate, MEETING_DURATION_MIN } from "./_googleCalendar.js";
 
 const BUSINESS_HOURS = { startHour: 9, endHour: 17 };
 const SLOT_STEP_MIN = 15; // 15-min granularity so buffer-shifted slots (e.g. 10:45 after a 10:00-10:30 meeting + 15-min buffer) can actually be offered
@@ -38,11 +38,17 @@ export default async function handler(req, res) {
     const slots = [];
     for (let h = BUSINESS_HOURS.startHour; h < BUSINESS_HOURS.endHour; h++) {
       for (let m = 0; m < 60; m += SLOT_STEP_MIN) {
-        const slotStart = new Date(`${date}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`);
+        const hhmm = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+        // Real UTC instants, correctly derived from the Europe/Amsterdam
+        // wall-clock time via zonedWallTimeToUtcDate — NOT a naive
+        // new Date(`${date}T${hhmm}:00`), which is parsed in the server's
+        // own timezone (UTC on Vercel) and was the root cause of the
+        // reported +2h booking bug.
+        const slotStart = zonedWallTimeToUtcDate(date, hhmm, timeZone);
         const slotEnd = new Date(slotStart.getTime() + MEETING_DURATION_MIN * 60000);
 
         if (!overlapsBusy(slotStart, slotEnd, busy) && slotStart > new Date()) {
-          slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+          slots.push(hhmm);
         }
       }
     }

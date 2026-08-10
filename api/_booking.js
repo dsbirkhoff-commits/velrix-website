@@ -22,11 +22,14 @@
  * database by design. In practice, two people would need to submit within
  * the same fraction of a second for the residual window to matter.
  */
-import { MEETING_DURATION_MIN, overlapsBusy, getBusyForDay } from "./_googleCalendar.js";
+import { MEETING_DURATION_MIN, overlapsBusy, getBusyForDay, zonedWallTimeToUtcDate, addMinutesToWallTime } from "./_googleCalendar.js";
 
 export async function attemptBooking({ calendar, calendarId, timeZone, dateISO, time, name, email }) {
-  const start = new Date(`${dateISO}T${time}:00`);
-  const end = new Date(start.getTime() + MEETING_DURATION_MIN * 60000);
+  // Real instants — needed only to compare against Google's busy[] (which
+  // are real instants). NOT what gets sent to Google for event creation.
+  const start = zonedWallTimeToUtcDate(dateISO, time, timeZone);
+  const endWall = addMinutesToWallTime(dateISO, time, MEETING_DURATION_MIN);
+  const end = zonedWallTimeToUtcDate(endWall.dateISO, endWall.time, timeZone);
 
   let busy;
   try {
@@ -47,8 +50,13 @@ export async function attemptBooking({ calendar, calendarId, timeZone, dateISO, 
     requestBody: {
       summary: `VELRIX kennismaking — ${name}`,
       description: "Gratis kennismaking (30 min) via velrix.nl",
-      start: { dateTime: start.toISOString(), timeZone },
-      end: { dateTime: end.toISOString(), timeZone },
+      // Floating local wall-clock time (no Z / no offset) + explicit
+      // timeZone — the documented, DST-correct way to tell Google
+      // Calendar "this clock time, in this zone". Google's own servers
+      // resolve the real instant, so no manual DST math is needed or
+      // wanted here.
+      start: { dateTime: `${dateISO}T${time}:00`, timeZone },
+      end: { dateTime: `${endWall.dateISO}T${endWall.time}:00`, timeZone },
       attendees: [{ email, displayName: name }],
     },
   });
