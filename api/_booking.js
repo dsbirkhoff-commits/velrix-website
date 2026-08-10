@@ -25,11 +25,23 @@
 import { MEETING_DURATION_MIN, overlapsBusy, getBusyForDay, zonedWallTimeToUtcDate, addMinutesToWallTime } from "./_googleCalendar.js";
 
 export async function attemptBooking({ calendar, calendarId, timeZone, dateISO, time, name, email }) {
-  // Real instants — needed only to compare against Google's busy[] (which
-  // are real instants). NOT what gets sent to Google for event creation.
+  // Real instants — needed to compare against Google's busy[] (which are
+  // real instants), AND now used directly as the event's dateTime too
+  // (see below) so there is exactly one source of truth for "what real
+  // moment does this wall-clock time correspond to", not two techniques
+  // that could theoretically disagree.
   const start = zonedWallTimeToUtcDate(dateISO, time, timeZone);
   const endWall = addMinutesToWallTime(dateISO, time, MEETING_DURATION_MIN);
   const end = zonedWallTimeToUtcDate(endWall.dateISO, endWall.time, timeZone);
+
+  // Required debug logging (temporary, see task): proves exactly what
+  // this request selected and what gets sent to Google, visible in
+  // Vercel's function logs for the next live test.
+  console.log("SELECTED DATE:", dateISO);
+  console.log("SELECTED TIME:", time);
+  console.log("TIMEZONE:", timeZone);
+  console.log("CALENDAR START:", `${dateISO}T${time}:00`, "| resolved UTC instant:", start.toISOString());
+  console.log("CALENDAR END:", `${endWall.dateISO}T${endWall.time}:00`, "| resolved UTC instant:", end.toISOString());
 
   let busy;
   try {
@@ -50,13 +62,14 @@ export async function attemptBooking({ calendar, calendarId, timeZone, dateISO, 
     requestBody: {
       summary: `VELRIX kennismaking — ${name}`,
       description: "Gratis kennismaking (30 min) via velrix.nl",
-      // Floating local wall-clock time (no Z / no offset) + explicit
-      // timeZone — the documented, DST-correct way to tell Google
-      // Calendar "this clock time, in this zone". Google's own servers
-      // resolve the real instant, so no manual DST math is needed or
-      // wanted here.
-      start: { dateTime: `${dateISO}T${time}:00`, timeZone },
-      end: { dateTime: `${endWall.dateISO}T${endWall.time}:00`, timeZone },
+      // Sent as an unambiguous, already-resolved real UTC instant (via
+      // the same DST-aware zonedWallTimeToUtcDate() used for the overlap
+      // check — one conversion, used twice, rather than trusting Google
+      // to correctly interpret a floating local time on top of that).
+      // timeZone is still included so Google displays/handles the event
+      // in the right zone (e.g. for recurrence, if ever added later).
+      start: { dateTime: start.toISOString(), timeZone },
+      end: { dateTime: end.toISOString(), timeZone },
       attendees: [{ email, displayName: name }],
     },
   });
