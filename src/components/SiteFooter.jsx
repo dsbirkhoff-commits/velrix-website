@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Gauge, Check, Linkedin, Instagram, Twitter, Youtube, Mail } from "lucide-react";
+import { Gauge, Linkedin, Instagram, Twitter, Youtube, Mail, ArrowRight } from "lucide-react";
+import { useBooking } from "./BookingProvider.jsx";
 
 const SECTION_LINKS = [
   { hash: "#diensten", label: "Diensten" },
@@ -10,10 +11,9 @@ const SECTION_LINKS = [
 ];
 
 export default function SiteFooter() {
-  const [email, setEmail] = useState("");
-  const [subscribed, setSubscribed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { openBooking } = useBooking();
 
   const goToSection = (hash) => (e) => {
     e.preventDefault();
@@ -34,20 +34,18 @@ export default function SiteFooter() {
   return (
     <footer className="footer">
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-16">
-        <div className="footer-newsletter glass-card">
+        <div className="footer-newsletter glass-card" style={{ flexDirection: "column", alignItems: "flex-start", gap: 14 }}>
           <div>
-            <h3 className="guarantee-title">Blijf op de hoogte</h3>
-            <p className="guarantee-desc mt-1">Praktische AI-inzichten voor autogarages.</p>
+            <h3 className="guarantee-title">Klaar om klantcontact te automatiseren?</h3>
+            <p className="guarantee-desc mt-1">Ontdek in 30 minuten wat VELRIX voor jouw garage kan automatiseren.</p>
           </div>
-          {subscribed ? (
-            <div className="footer-subscribed"><Check size={16} /> Bedankt voor uw aanmelding</div>
-          ) : (
-            <form className="footer-form" onSubmit={(e) => { e.preventDefault(); if (email) setSubscribed(true); }}>
-              <label htmlFor="newsletter" className="sr-only">E-mailadres voor nieuwsbrief</label>
-              <input id="newsletter" type="email" required placeholder="naam@garage.nl" value={email} onChange={(e) => setEmail(e.target.value)} />
-              <button type="submit">Aanmelden</button>
-            </form>
-          )}
+          <button onClick={openBooking} className="btn-gold" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            Plan een gratis gesprek <ArrowRight size={16} />
+          </button>
+          <div style={{ fontSize: 13.5, color: "var(--text-muted, #9a9c9f)" }}>
+            Liever eerst een vraag stellen?{" "}
+            <a href="mailto:daniel@velrix.nl" style={{ color: "var(--gold-bright, #e6cd94)", fontWeight: 500 }}>daniel@velrix.nl</a>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-[1.3fr_1fr_1fr_1fr] gap-10 mt-16">
