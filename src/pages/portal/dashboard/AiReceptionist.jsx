@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Bot, Loader2, Save, Plus, X } from "lucide-react";
-import { supabase } from "../../lib/supabaseClient.js";
-import { useAuth } from "../../contexts/AuthContext.jsx";
-import DashboardPageStyles from "../../components/DashboardPageStyles.jsx";
+import { supabase } from "../../../lib/supabaseClient.js";
+import { useAuth } from "../../../contexts/AuthContext.jsx";
+import DashboardPageStyles from "../../../components/DashboardPageStyles.jsx";
 
 const DAYS = ["Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag", "Zondag"];
 

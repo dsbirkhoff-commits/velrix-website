@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Gauge, Loader2, LogIn } from "lucide-react";
-import { supabase } from "../lib/supabaseClient.js";
-import { useAuth } from "../contexts/AuthContext.jsx";
+import { supabase } from "../../lib/supabaseClient.js";
+import { useAuth } from "../../contexts/AuthContext.jsx";
 
 export default function Login() {
   const { session } = useAuth();
@@ -14,7 +14,7 @@ export default function Login() {
   const [error, setError] = useState(null);
 
   if (session) {
-    return <Navigate to={location.state?.from?.pathname || "/dashboard"} replace />;
+    return <Navigate to={location.state?.from?.pathname || "/portal/dashboard"} replace />;
   }
 
   const submit = async (e) => {
@@ -27,7 +27,7 @@ export default function Login() {
       setError("Inloggen mislukt. Controleer je e-mailadres en wachtwoord.");
       return;
     }
-    navigate(location.state?.from?.pathname || "/dashboard", { replace: true });
+    navigate(location.state?.from?.pathname || "/portal/dashboard", { replace: true });
   };
 
   return (

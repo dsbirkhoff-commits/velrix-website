@@ -18,7 +18,7 @@ export default function RequireAuth({ children }) {
   }
 
   if (!session) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/portal/login" state={{ from: location }} replace />;
   }
 
   return children;

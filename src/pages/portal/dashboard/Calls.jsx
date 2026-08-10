@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Phone, Loader2 } from "lucide-react";
-import { supabase } from "../../lib/supabaseClient.js";
-import { useAuth } from "../../contexts/AuthContext.jsx";
-import DashboardPageStyles from "../../components/DashboardPageStyles.jsx";
+import { supabase } from "../../../lib/supabaseClient.js";
+import { useAuth } from "../../../contexts/AuthContext.jsx";
+import DashboardPageStyles from "../../../components/DashboardPageStyles.jsx";
 
 export default function Calls() {
   const { membership } = useAuth();

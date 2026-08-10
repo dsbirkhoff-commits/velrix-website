@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { CalendarClock, CalendarDays, UserPlus, Phone, PhoneMissed, Bot } from "lucide-react";
-import { supabase } from "../../lib/supabaseClient.js";
-import { useAuth } from "../../contexts/AuthContext.jsx";
-import DashboardPageStyles from "../../components/DashboardPageStyles.jsx";
+import { supabase } from "../../../lib/supabaseClient.js";
+import { useAuth } from "../../../contexts/AuthContext.jsx";
+import DashboardPageStyles from "../../../components/DashboardPageStyles.jsx";
 
 function todayISO() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Amsterdam" }).format(new Date());

@@ -10,20 +10,20 @@ import Terms from "./pages/Terms.jsx";
 import Privacy from "./pages/Privacy.jsx";
 import AdminConnect from "./pages/AdminConnect.jsx";
 
-// Lazy-loaded: the customer portal (and the Supabase client it needs)
-// ships as its own chunk, only downloaded by visitors who actually go to
-// /login or /dashboard/*. Public-site visitors never pay for this weight
-// — keeps the existing site exactly as fast as before this feature.
+// Lazy-loaded: het VELRIX-klantportaal (en de Supabase-client die het
+// nodig heeft) is een eigen chunk, alleen gedownload door bezoekers die
+// echt naar /portal/* gaan. Bezoekers van de publieke site betalen hier
+// niets voor — de bestaande site blijft exact even snel.
 const AuthProvider = lazy(() => import("./contexts/AuthContext.jsx").then((m) => ({ default: m.AuthProvider })));
 const RequireAuth = lazy(() => import("./components/RequireAuth.jsx"));
 const DashboardLayout = lazy(() => import("./components/DashboardLayout.jsx"));
-const Login = lazy(() => import("./pages/Login.jsx"));
-const Overview = lazy(() => import("./pages/dashboard/Overview.jsx"));
-const Appointments = lazy(() => import("./pages/dashboard/Appointments.jsx"));
-const Calls = lazy(() => import("./pages/dashboard/Calls.jsx"));
-const Customers = lazy(() => import("./pages/dashboard/Customers.jsx"));
-const AiReceptionist = lazy(() => import("./pages/dashboard/AiReceptionist.jsx"));
-const DashboardSettings = lazy(() => import("./pages/dashboard/Settings.jsx"));
+const PortalLogin = lazy(() => import("./pages/portal/PortalLogin.jsx"));
+const Overview = lazy(() => import("./pages/portal/dashboard/Overview.jsx"));
+const Appointments = lazy(() => import("./pages/portal/dashboard/Appointments.jsx"));
+const Calls = lazy(() => import("./pages/portal/dashboard/Calls.jsx"));
+const Customers = lazy(() => import("./pages/portal/dashboard/Customers.jsx"));
+const AiReceptionist = lazy(() => import("./pages/portal/dashboard/AiReceptionist.jsx"));
+const PortalSettings = lazy(() => import("./pages/portal/dashboard/Settings.jsx"));
 
 function PortalFallback() {
   return (
@@ -33,13 +33,29 @@ function PortalFallback() {
   );
 }
 
-function Portal({ children }) {
-  // AuthProvider only wraps the portal routes — the public site (Home,
-  // Demo, booking flow, etc.) never mounts it or its Supabase client.
+/** Wraps every /portal/* route below: Suspense (code-split loading) +
+ * AuthProvider (session/profile/org) — mounted only for portal routes,
+ * never for the public site. */
+function PortalRoot({ children }) {
   return (
     <Suspense fallback={<PortalFallback />}>
       <AuthProvider>{children}</AuthProvider>
     </Suspense>
+  );
+}
+
+/** Pathless layout route: renders the sidebar shell once, behind the
+ * auth guard, and lets each dashboard page below live at its own
+ * top-level /portal/... path (not nested under /portal/dashboard/...). */
+function ProtectedPortalLayout() {
+  return (
+    <PortalRoot>
+      <Suspense fallback={<PortalFallback />}>
+        <RequireAuth>
+          <DashboardLayout />
+        </RequireAuth>
+      </Suspense>
+    </PortalRoot>
   );
 }
 
@@ -57,33 +73,23 @@ export default function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/admin/koppel-agenda" element={<AdminConnect />} />
 
-          {/* Klantportaal — eigen lazy-loaded chunk */}
+          {/* VELRIX Klantportaal */}
           <Route
-            path="/login"
+            path="/portal/login"
             element={
-              <Portal>
-                <Login />
-              </Portal>
+              <PortalRoot>
+                <PortalLogin />
+              </PortalRoot>
             }
           />
-          <Route
-            path="/dashboard"
-            element={
-              <Portal>
-                <Suspense fallback={<PortalFallback />}>
-                  <RequireAuth>
-                    <DashboardLayout />
-                  </RequireAuth>
-                </Suspense>
-              </Portal>
-            }
-          >
-            <Route index element={<Suspense fallback={<PortalFallback />}><Overview /></Suspense>} />
-            <Route path="appointments" element={<Suspense fallback={<PortalFallback />}><Appointments /></Suspense>} />
-            <Route path="calls" element={<Suspense fallback={<PortalFallback />}><Calls /></Suspense>} />
-            <Route path="customers" element={<Suspense fallback={<PortalFallback />}><Customers /></Suspense>} />
-            <Route path="ai-receptionist" element={<Suspense fallback={<PortalFallback />}><AiReceptionist /></Suspense>} />
-            <Route path="settings" element={<Suspense fallback={<PortalFallback />}><DashboardSettings /></Suspense>} />
+
+          <Route element={<ProtectedPortalLayout />}>
+            <Route path="/portal/dashboard" element={<Suspense fallback={<PortalFallback />}><Overview /></Suspense>} />
+            <Route path="/portal/appointments" element={<Suspense fallback={<PortalFallback />}><Appointments /></Suspense>} />
+            <Route path="/portal/calls" element={<Suspense fallback={<PortalFallback />}><Calls /></Suspense>} />
+            <Route path="/portal/customers" element={<Suspense fallback={<PortalFallback />}><Customers /></Suspense>} />
+            <Route path="/portal/ai-receptionist" element={<Suspense fallback={<PortalFallback />}><AiReceptionist /></Suspense>} />
+            <Route path="/portal/settings" element={<Suspense fallback={<PortalFallback />}><PortalSettings /></Suspense>} />
           </Route>
 
           <Route path="*" element={<Home />} />

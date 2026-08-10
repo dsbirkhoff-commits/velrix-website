@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Building2, Mail, CalendarClock, Users, Bell, Check, Loader2 } from "lucide-react";
-import { supabase } from "../../lib/supabaseClient.js";
-import { useAuth } from "../../contexts/AuthContext.jsx";
-import DashboardPageStyles from "../../components/DashboardPageStyles.jsx";
+import { supabase } from "../../../lib/supabaseClient.js";
+import { useAuth } from "../../../contexts/AuthContext.jsx";
+import DashboardPageStyles from "../../../components/DashboardPageStyles.jsx";
 
 export default function Settings() {
   const { user, membership } = useAuth();

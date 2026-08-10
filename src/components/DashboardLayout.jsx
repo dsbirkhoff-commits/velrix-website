@@ -1,19 +1,19 @@
 import React from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { Gauge, LayoutDashboard, CalendarClock, Phone, Users, Bot, Settings, LogOut } from "lucide-react";
+import { Gauge, LayoutDashboard, CalendarClock, Phone, Users, Bot, Settings, LogOut, ShieldCheck } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext.jsx";
 
 const NAV = [
-  { to: "/dashboard", label: "Overzicht", icon: LayoutDashboard, end: true },
-  { to: "/dashboard/appointments", label: "Afspraken", icon: CalendarClock },
-  { to: "/dashboard/calls", label: "Gesprekken", icon: Phone },
-  { to: "/dashboard/customers", label: "Klanten", icon: Users },
-  { to: "/dashboard/ai-receptionist", label: "AI Receptionist", icon: Bot },
-  { to: "/dashboard/settings", label: "Instellingen", icon: Settings },
+  { to: "/portal/dashboard", label: "Overzicht", icon: LayoutDashboard, end: true },
+  { to: "/portal/appointments", label: "Afspraken", icon: CalendarClock },
+  { to: "/portal/calls", label: "Gesprekken", icon: Phone },
+  { to: "/portal/customers", label: "Klanten", icon: Users },
+  { to: "/portal/ai-receptionist", label: "AI Receptionist", icon: Bot },
+  { to: "/portal/settings", label: "Instellingen", icon: Settings },
 ];
 
 export default function DashboardLayout() {
-  const { user, membership, signOut } = useAuth();
+  const { user, membership, isVelrixAdmin, signOut } = useAuth();
 
   return (
     <div className="dash-shell">
@@ -48,8 +48,11 @@ export default function DashboardLayout() {
           <span className="dash-brand-word">VELRIX</span>
         </div>
         <div className="dash-org">
-          <div className="dash-org-name">{membership?.organizations?.name || "…"}</div>
-          <div className="dash-org-role">{membership?.role || ""}</div>
+          <div className="dash-org-name">{membership?.organizations?.name || (isVelrixAdmin ? "VELRIX (admin)" : "…")}</div>
+          <div className="dash-org-role" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            {isVelrixAdmin && <ShieldCheck size={11} style={{ color: "var(--gold)" }} />}
+            {isVelrixAdmin ? "VELRIX admin" : membership?.role || ""}
+          </div>
         </div>
         <nav className="dash-nav">
           {NAV.map((item) => (
