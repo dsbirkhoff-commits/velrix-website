@@ -4,32 +4,74 @@ import { getAvailability, createBooking, bookingMeta } from "../services/calenda
 
 const STEPS = ["Datum", "Tijd", "Gegevens", "Bevestigen"];
 
+/**
+ * THE DATE FIX.
+ *
+ * Root cause: toISODate() used to do `d.toISOString().slice(0, 10)` on a
+ * Date object built from local midnight (via setHours(0,0,0,0)). Europe/
+ * Amsterdam is always AHEAD of UTC (+1h winter, +2h summer), so local
+ * midnight Monday, converted to UTC, lands in the evening of the
+ * PREVIOUS day (Sunday ~22:00 UTC) — and slicing the date portion of
+ * that UTC string grabbed Sunday's date. That's the exact reported bug:
+ * pick Monday, get Sunday. This wasn't a time-of-day issue (already
+ * fixed separately) — it's a pure calendar-date bug in how the picker
+ * turned a selected day into a date string in the first place.
+ *
+ * The fix below avoids Date-object local/UTC reinterpretation entirely
+ * for calendar-date purposes: dates are plain "YYYY-MM-DD" strings from
+ * the moment "today" is established (via Intl, anchored to Europe/
+ * Amsterdam specifically — not the visitor's own device timezone, which
+ * could be anything) all the way through to the API call. Date objects
+ * are only ever used as UTC-anchored calculators (built with Date.UTC,
+ * read back via getUTC*()) for pure calendar arithmetic (+1 day, day-of-
+ * week) — never for anything resembling a real-world instant, so this
+ * class of bug can't reappear.
+ */
+function amsterdamTodayISO() {
+  // "Today" as Amsterdam sees it, regardless of the visitor's own device
+  // timezone — en-CA locale formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Amsterdam" }).format(new Date());
+}
+
+function addDaysISO(dateISO, days) {
+  const [y, m, d] = dateISO.split("-").map(Number);
+  const scratch = new Date(Date.UTC(y, m - 1, d + days));
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${scratch.getUTCFullYear()}-${pad(scratch.getUTCMonth() + 1)}-${pad(scratch.getUTCDate())}`;
+}
+
+function isoDayOfWeek(dateISO) {
+  const [y, m, d] = dateISO.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0 = Sunday, 6 = Saturday
+}
+
 function nextBusinessDays(count) {
   const days = [];
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + 1); // start morgen
+  let cursor = addDaysISO(amsterdamTodayISO(), 1); // start morgen, Amsterdam-relatief
   while (days.length < count) {
-    const day = d.getDay();
-    if (day !== 0 && day !== 6) {
-      days.push(new Date(d));
-    }
-    d.setDate(d.getDate() + 1);
+    const dow = isoDayOfWeek(cursor);
+    if (dow !== 0 && dow !== 6) days.push(cursor);
+    cursor = addDaysISO(cursor, 1);
   }
   return days;
 }
 
-function toISODate(d) {
-  return d.toISOString().slice(0, 10);
-}
-
-function formatDateLabel(d) {
-  return d.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" });
+function formatDateLabel(dateISO) {
+  const [y, m, d] = dateISO.split("-").map(Number);
+  // Noon UTC + timeZone:"UTC" in the formatter — guarantees the weekday/
+  // day/month read back exactly match the calendar date, regardless of
+  // the visitor's own browser timezone.
+  return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString("nl-NL", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
 }
 
 export default function BookingModal({ onClose }) {
   const [stepIndex, setStepIndex] = useState(0);
-  const [selectedDate, setSelectedDate] = useState(null); // Date
+  const [selectedDate, setSelectedDate] = useState(null); // "YYYY-MM-DD" string, never a Date object
   const [selectedTime, setSelectedTime] = useState(null); // "HH:MM"
   const [slots, setSlots] = useState([]);
   const [slotsSource, setSlotsSource] = useState(null); // "mock" | "google-calendar"
@@ -55,13 +97,13 @@ export default function BookingModal({ onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const pickDate = async (date) => {
-    setSelectedDate(date);
+  const pickDate = async (dateISO) => {
+    setSelectedDate(dateISO);
     setSelectedTime(null);
     setLoadingSlots(true);
     setSlots([]);
     try {
-      const res = await getAvailability(toISODate(date));
+      const res = await getAvailability(dateISO);
       setSlots(res.slots);
       setSlotsSource(res.source);
     } finally {
@@ -81,7 +123,7 @@ export default function BookingModal({ onClose }) {
     setError(null);
     try {
       const res = await createBooking({
-        dateISO: toISODate(selectedDate),
+        dateISO: selectedDate,
         time: selectedTime,
         name: form.name.trim(),
         email: form.email.trim(),
@@ -95,7 +137,7 @@ export default function BookingModal({ onClose }) {
         setStepIndex(1);
         setLoadingSlots(true);
         try {
-          const fresh = await getAvailability(toISODate(selectedDate));
+          const fresh = await getAvailability(selectedDate);
           setSlots(fresh.slots);
           setSlotsSource(fresh.source);
         } finally {
@@ -225,9 +267,9 @@ export default function BookingModal({ onClose }) {
           {stepIndex === 0 && (
             <div className="bk-days">
               {days.map((d) => (
-                <div key={d.toISOString()} className={`bk-day ${selectedDate && toISODate(selectedDate) === toISODate(d) ? "active" : ""}`} onClick={() => pickDate(d)}>
+                <div key={d} className={`bk-day ${selectedDate === d ? "active" : ""}`} onClick={() => pickDate(d)}>
                   <span className="bk-day-dow">{formatDateLabel(d).split(" ")[0]}</span>
-                  <span className="bk-day-date">{d.getDate()}</span>
+                  <span className="bk-day-date">{Number(d.slice(8, 10))}</span>
                 </div>
               ))}
             </div>
