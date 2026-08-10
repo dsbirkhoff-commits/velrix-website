@@ -72,6 +72,7 @@ export default function BookingModal({ onClose }) {
 
   const pickTime = (time) => {
     setSelectedTime(time);
+    setError(null);
     setStepIndex(2);
   };
 
@@ -88,7 +89,23 @@ export default function BookingModal({ onClose }) {
       setResult(res);
       setStepIndex(4);
     } catch (e) {
-      setError("Er ging iets mis bij het bevestigen. Probeer het nog eens.");
+      if (e.code === "SLOT_TAKEN") {
+        setError("Dit tijdstip is zojuist geboekt. De beschikbare tijden zijn opnieuw geladen.");
+        setSelectedTime(null);
+        setStepIndex(1);
+        setLoadingSlots(true);
+        try {
+          const fresh = await getAvailability(toISODate(selectedDate));
+          setSlots(fresh.slots);
+          setSlotsSource(fresh.source);
+        } finally {
+          setLoadingSlots(false);
+        }
+      } else if (e.code === "UNREACHABLE") {
+        setError(e.message);
+      } else {
+        setError("Er ging iets mis bij het bevestigen. Probeer het nog eens.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -219,6 +236,7 @@ export default function BookingModal({ onClose }) {
           {/* Step 1: time */}
           {stepIndex === 1 && (
             <>
+              {error && <div className="bk-error" style={{ marginBottom: 12 }}>{error}</div>}
               {loadingSlots ? (
                 <div className="bk-empty"><Loader2 size={20} className="animate-spin" style={{ margin: "0 auto 10px" }} /><br />Beschikbaarheid ophalen…</div>
               ) : slots.length === 0 ? (
@@ -301,7 +319,8 @@ export default function BookingModal({ onClose }) {
               <div className="bk-summary" style={{ textAlign: "left", marginTop: 18 }}>
                 <div className="bk-summary-row"><span className="k">Datum</span><span className="v">{selectedDate && formatDateLabel(selectedDate)}</span></div>
                 <div className="bk-summary-row"><span className="k">Tijd</span><span className="v">{selectedTime}</span></div>
-                <div className="bk-summary-row"><span className="k">Type gesprek</span><span className="v">{bookingMeta.title}</span></div>
+                <div className="bk-summary-row"><span className="k">Naam</span><span className="v">{form.name}</span></div>
+                <div className="bk-summary-row"><span className="k">Type afspraak</span><span className="v">{bookingMeta.title}</span></div>
                 <div className="bk-summary-row"><span className="k">E-mailadres</span><span className="v">{form.email}</span></div>
               </div>
 

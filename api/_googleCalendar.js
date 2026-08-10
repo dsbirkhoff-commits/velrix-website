@@ -72,3 +72,45 @@ export async function getCalendarClient() {
 
   return google.calendar({ version: "v3", auth: oauth2Client });
 }
+
+/**
+ * Shared booking-rules constants and the ONE overlap check used by both
+ * availability.js (to decide which slots to show) and book.js (to make
+ * the final, authoritative decision right before creating the event).
+ * Keeping this in a single function is deliberate: two separate
+ * hand-written overlap checks are exactly how these subtly drift apart
+ * and disagree with each other over time.
+ */
+export const MEETING_DURATION_MIN = 30;
+export const BUFFER_MIN = 15; // gap required between the end of one meeting and the start of the next
+
+/**
+ * True if [newStart, newEnd) is too close to any busy interval, once each
+ * busy interval is padded by BUFFER_MIN on both sides. Real interval
+ * overlap (newStart < paddedBusyEnd && newEnd > paddedBusyStart), not a
+ * same-day-only or start-time-only check.
+ */
+export function overlapsBusy(newStart, newEnd, busyIntervals, bufferMin = BUFFER_MIN) {
+  return busyIntervals.some((b) => {
+    const busyStart = new Date(new Date(b.start).getTime() - bufferMin * 60000);
+    const busyEnd = new Date(new Date(b.end).getTime() + bufferMin * 60000);
+    return newStart < busyEnd && newEnd > busyStart;
+  });
+}
+
+/** Fetches the day's busy intervals from Google Calendar via freebusy.query. */
+export async function getBusyForDay(calendar, calendarId, timeZone, dateISO) {
+  const dayStart = new Date(`${dateISO}T00:00:00`);
+  const dayEnd = new Date(`${dateISO}T23:59:59`);
+
+  const freebusy = await calendar.freebusy.query({
+    requestBody: {
+      timeMin: dayStart.toISOString(),
+      timeMax: dayEnd.toISOString(),
+      timeZone,
+      items: [{ id: calendarId }],
+    },
+  });
+
+  return freebusy.data.calendars?.[calendarId]?.busy || [];
+}

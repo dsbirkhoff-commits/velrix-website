@@ -43,24 +43,54 @@ export async function getAvailability(dateISO) {
 /**
  * @param {{ dateISO:string, time:string, name:string, email:string }} payload
  * @returns {Promise<{ source: "google-calendar"|"mock", confirmationId: string, htmlLink?: string }>}
+ * @throws {Error} with `.code` set to "SLOT_TAKEN" or "UNREACHABLE" when the
+ *   real backend explicitly rejects the booking — these must NOT silently
+ *   fall back to the mock provider, or the UI would confirm a booking that
+ *   never actually happened.
  */
 export async function createBooking(payload) {
+  let res;
   try {
-    const res = await fetch("/api/book", {
+    res = await fetch("/api/book", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.success && data.source === "google-calendar") {
-        return { source: "google-calendar", confirmationId: data.eventId, htmlLink: data.htmlLink };
-      }
-    }
   } catch {
-    // Fall through to mock.
+    // No serverless function reachable at all (e.g. local static preview
+    // with no backend running) — the only case where falling back to the
+    // mock provider is legitimate, since there is no real backend to defer to.
+    return createMockBooking(payload);
   }
-  return createMockBooking(payload);
+
+  if (res.status === 501) {
+    // Google Calendar genuinely not configured yet — legitimate Testmodus.
+    return createMockBooking(payload);
+  }
+
+  const data = await res.json().catch(() => ({}));
+
+  if (res.ok && data.success && data.source === "google-calendar") {
+    return { source: "google-calendar", confirmationId: data.eventId, htmlLink: data.htmlLink };
+  }
+
+  if (res.status === 409 && data.reason === "slot_taken") {
+    const err = new Error(data.message || "Dit tijdstip is zojuist geboekt. Kies een ander beschikbaar tijdstip.");
+    err.code = "SLOT_TAKEN";
+    throw err;
+  }
+
+  if (res.status === 503 && data.reason === "unreachable") {
+    const err = new Error(data.message || "Het lukt momenteel niet om de beschikbaarheid te controleren. Probeer het over een moment opnieuw.");
+    err.code = "UNREACHABLE";
+    throw err;
+  }
+
+  // Any other failure from a real, configured backend: never silently
+  // fall back to mock and pretend the booking succeeded.
+  const err = new Error(data.error || data.message || "Kon de afspraak niet aanmaken.");
+  err.code = "BOOKING_FAILED";
+  throw err;
 }
 
 export const bookingMeta = {

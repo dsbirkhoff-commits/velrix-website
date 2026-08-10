@@ -1,6 +1,5 @@
 import { isConfigured, getTimezone, getCalendarClient, getCalendarId } from "./_googleCalendar.js";
-
-const MEETING_DURATION_MIN = 30;
+import { attemptBooking } from "./_booking.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -28,29 +27,38 @@ export default async function handler(req, res) {
   try {
     const calendar = await getCalendarClient();
     const timeZone = getTimezone();
+    const calendarId = getCalendarId();
 
-    const start = new Date(`${dateISO}T${time}:00`);
-    const end = new Date(start.getTime() + MEETING_DURATION_MIN * 60000);
+    const result = await attemptBooking({ calendar, calendarId, timeZone, dateISO, time, name, email });
 
-    const event = await calendar.events.insert({
-      calendarId: getCalendarId(),
-      sendUpdates: "all",
-      requestBody: {
-        summary: `VELRIX kennismaking — ${name}`,
-        description: "Gratis kennismaking (30 min) via velrix.nl",
-        start: { dateTime: start.toISOString(), timeZone },
-        end: { dateTime: end.toISOString(), timeZone },
-        attendees: [{ email, displayName: name }],
-      },
-    });
+    if (result.status === "slot_taken") {
+      // Someone else booked this exact slot between the frontend loading
+      // availability and this request arriving. No event was created.
+      res.status(409).json({
+        success: false,
+        reason: "slot_taken",
+        message: "Dit tijdstip is zojuist geboekt. Kies een ander beschikbaar tijdstip.",
+      });
+      return;
+    }
 
     res.status(200).json({
       success: true,
       source: "google-calendar",
-      eventId: event.data.id,
-      htmlLink: event.data.htmlLink,
+      eventId: result.eventId,
+      htmlLink: result.htmlLink,
     });
   } catch (err) {
+    if (err.message === "calendar_unreachable") {
+      // Never confirm a booking we couldn't actually verify availability for.
+      console.error("booking error (calendar unreachable):", err.cause || err);
+      res.status(503).json({
+        success: false,
+        reason: "unreachable",
+        message: "Het lukt momenteel niet om de beschikbaarheid te controleren. Probeer het over een moment opnieuw.",
+      });
+      return;
+    }
     console.error("booking error:", err);
     res.status(500).json({ success: false, error: "Kon de afspraak niet aanmaken in Google Calendar." });
   }
