@@ -14,6 +14,13 @@ function addDaysISO(dateISO, days) {
   return `${scratch.getUTCFullYear()}-${pad(scratch.getUTCMonth() + 1)}-${pad(scratch.getUTCDate())}`;
 }
 
+function greeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Goedemorgen";
+  if (hour < 18) return "Goedemiddag";
+  return "Goedenavond";
+}
+
 export default function Overview() {
   const { membership } = useAuth();
   const orgId = membership?.organization_id;
@@ -75,8 +82,8 @@ export default function Overview() {
     <div>
       <DashboardPageStyles />
       <div className="dp-header">
-        <h1 className="dp-title">Overzicht</h1>
-        <p className="dp-sub">Live status van {membership?.organizations?.name || "je organisatie"}.</p>
+        <h1 className="dp-title">{greeting()}</h1>
+        <p className="dp-sub">Hier vind je een overzicht van jouw VELRIX-systeem — {membership?.organizations?.name || "je organisatie"}.</p>
       </div>
 
       <div className="dp-grid dp-cols-3" style={{ marginBottom: 16 }}>

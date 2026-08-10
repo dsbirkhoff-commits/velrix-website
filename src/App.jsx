@@ -18,6 +18,7 @@ const AuthProvider = lazy(() => import("./contexts/AuthContext.jsx").then((m) =>
 const RequireAuth = lazy(() => import("./components/RequireAuth.jsx"));
 const DashboardLayout = lazy(() => import("./components/DashboardLayout.jsx"));
 const PortalLogin = lazy(() => import("./pages/portal/PortalLogin.jsx"));
+const ResetPassword = lazy(() => import("./pages/portal/ResetPassword.jsx"));
 const Overview = lazy(() => import("./pages/portal/dashboard/Overview.jsx"));
 const Appointments = lazy(() => import("./pages/portal/dashboard/Appointments.jsx"));
 const Calls = lazy(() => import("./pages/portal/dashboard/Calls.jsx"));
@@ -79,6 +80,14 @@ export default function App() {
             element={
               <PortalRoot>
                 <PortalLogin />
+              </PortalRoot>
+            }
+          />
+          <Route
+            path="/portal/reset-password"
+            element={
+              <PortalRoot>
+                <ResetPassword />
               </PortalRoot>
             }
           />

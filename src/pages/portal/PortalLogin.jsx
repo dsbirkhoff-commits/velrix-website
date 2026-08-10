@@ -12,6 +12,8 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   if (session) {
     return <Navigate to={location.state?.from?.pathname || "/portal/dashboard"} replace />;
@@ -28,6 +30,23 @@ export default function Login() {
       return;
     }
     navigate(location.state?.from?.pathname || "/portal/dashboard", { replace: true });
+  };
+
+  const sendResetLink = async () => {
+    if (!email) {
+      setError("Vul eerst je e-mailadres in, dan sturen we een link om je wachtwoord in te stellen.");
+      return;
+    }
+    setError(null);
+    setResetLoading(true);
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/portal/reset-password`,
+    });
+    setResetLoading(false);
+    // Bewust altijd dezelfde melding, ongeacht of het account bestaat —
+    // voorkomt dat bezoekers kunnen aftasten welke e-mailadressen wel of
+    // niet een VELRIX-account hebben.
+    setResetSent(true);
   };
 
   return (
@@ -51,6 +70,9 @@ export default function Login() {
         .login-btn { width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:13px; border-radius:10px; border:none; cursor:pointer;
           background: linear-gradient(150deg, var(--gold-bright), var(--gold)); color:#17130a; font-weight:600; font-size:14.5px; }
         .login-btn:disabled { opacity:.6; cursor:wait; }
+        .login-forgot { display:block; text-align:center; margin-top:14px; font-size:12.5px; color: var(--text-dim); background:none; border:none; cursor:pointer; padding:0; }
+        .login-forgot:hover { color: var(--gold-bright); }
+        .login-reset-sent { font-size:12.5px; color:#6fd18a; text-align:center; margin-top:14px; }
         .login-footer { margin-top:20px; text-align:center; font-size:12px; color: var(--text-dim); }
       `}</style>
       <div className="login-card">
@@ -75,6 +97,13 @@ export default function Login() {
             {loading ? "Bezig…" : "Inloggen"}
           </button>
         </form>
+        {resetSent ? (
+          <div className="login-reset-sent">Als dit e-mailadres een VELRIX-account heeft, is er een link verstuurd om een wachtwoord in te stellen.</div>
+        ) : (
+          <button type="button" className="login-forgot" onClick={sendResetLink} disabled={resetLoading}>
+            {resetLoading ? "Bezig…" : "Wachtwoord vergeten of nog geen wachtwoord ingesteld?"}
+          </button>
+        )}
         <div className="login-footer">Nog geen toegang? Neem contact op via daniel@velrix.nl</div>
       </div>
     </div>

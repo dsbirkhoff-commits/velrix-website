@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Bot, Loader2, Save, Plus, X } from "lucide-react";
+import { Bot, Loader2, Save, Plus, X, CalendarClock, Check } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient.js";
 import { useAuth } from "../../../contexts/AuthContext.jsx";
 import DashboardPageStyles from "../../../components/DashboardPageStyles.jsx";
@@ -12,6 +12,7 @@ export default function AiReceptionist() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
+  const [calendarStatus, setCalendarStatus] = useState(null);
   const [form, setForm] = useState({
     bedrijfsnaam: "",
     adres: "",
@@ -28,7 +29,10 @@ export default function AiReceptionist() {
   useEffect(() => {
     if (!orgId) return;
     let cancelled = false;
-    supabase.from("ai_settings").select("*").eq("organization_id", orgId).maybeSingle().then(({ data, error }) => {
+    Promise.all([
+      supabase.from("ai_settings").select("*").eq("organization_id", orgId).maybeSingle(),
+      supabase.from("calendar_connections").select("status").eq("organization_id", orgId).maybeSingle(),
+    ]).then(([{ data, error }, { data: calData }]) => {
       if (cancelled) return;
       if (error) console.error(error);
       if (data) {
@@ -42,6 +46,7 @@ export default function AiReceptionist() {
           instructies: data.instructies || "",
         });
       }
+      setCalendarStatus(calData?.status || "not_connected");
       setLoading(false);
     });
     return () => { cancelled = true; };
@@ -86,6 +91,25 @@ export default function AiReceptionist() {
       </div>
 
       {toast && <div className={`dp-toast ${toast.type === "success" ? "dp-toast-success" : "dp-toast-error"}`}>{toast.msg}</div>}
+
+      <div className="dp-grid dp-cols-2" style={{ marginBottom: 16 }}>
+        <div className="dp-card">
+          <div className="dp-kpi-label"><Bot size={14} /> AI-status</div>
+          <div style={{ marginTop: 10 }}>
+            <span className="dp-badge dp-badge-gray">Nog niet actief (voice AI in ontwikkeling)</span>
+          </div>
+        </div>
+        <div className="dp-card">
+          <div className="dp-kpi-label"><CalendarClock size={14} /> Google Calendar status</div>
+          <div style={{ marginTop: 10 }}>
+            {calendarStatus === "connected" ? (
+              <span className="dp-badge dp-badge-green"><Check size={11} /> Verbonden</span>
+            ) : (
+              <span className="dp-badge dp-badge-gray">Niet gekoppeld</span>
+            )}
+          </div>
+        </div>
+      </div>
 
       <div className="dp-grid dp-cols-2" style={{ marginBottom: 16 }}>
         <div className="dp-card">

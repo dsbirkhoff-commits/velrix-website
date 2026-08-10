@@ -47,6 +47,7 @@ export function AuthProvider({ children }) {
           .from("memberships")
           .select("organization_id, role, organizations ( id, name )")
           .eq("user_id", session.user.id)
+          .order("created_at", { ascending: true }) // deterministic: oudste lidmaatschap eerst, i.p.v. willekeurige databasevolgorde als iemand ooit bij meerdere organisaties hoort
           .limit(1)
           .maybeSingle(),
       ]);
