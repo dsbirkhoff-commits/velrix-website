@@ -1,5 +1,6 @@
 import { isConfigured, getTimezone, getCalendarClient, getCalendarId } from "./_googleCalendar.js";
 import { attemptBooking } from "./_booking.js";
+import { syncBookingToDashboard } from "./_dashboardSync.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -48,6 +49,13 @@ export default async function handler(req, res) {
       eventId: result.eventId,
       htmlLink: result.htmlLink,
     });
+
+    // Best-effort, fire-and-forget: never blocks or affects the response
+    // above (which has already been sent). The public booking flow's
+    // success does not depend on this in any way — see _dashboardSync.js.
+    syncBookingToDashboard({ dateISO, time, name, email, googleEventId: result.eventId }).catch((err) =>
+      console.error("Dashboard sync error (non-blocking):", err)
+    );
   } catch (err) {
     if (err.message === "calendar_unreachable") {
       // Never confirm a booking we couldn't actually verify availability for.
