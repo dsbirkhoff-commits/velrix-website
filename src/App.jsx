@@ -9,7 +9,6 @@ import PlanMeeting from "./pages/PlanMeeting.jsx";
 import Terms from "./pages/Terms.jsx";
 import Privacy from "./pages/Privacy.jsx";
 import AdminConnect from "./pages/AdminConnect.jsx";
-import AdminSetPassword from "./pages/AdminSetPassword.jsx";
 
 // Lazy-loaded: het VELRIX-klantportaal (en de Supabase-client die het
 // nodig heeft) is een eigen chunk, alleen gedownload door bezoekers die
@@ -74,7 +73,6 @@ export default function App() {
           <Route path="/algemene-voorwaarden" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/admin/koppel-agenda" element={<AdminConnect />} />
-          <Route path="/admin/portal-wachtwoord" element={<AdminSetPassword />} />
 
           {/* VELRIX Klantportaal */}
           <Route
