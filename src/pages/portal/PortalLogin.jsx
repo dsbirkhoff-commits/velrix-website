@@ -15,6 +15,18 @@ export default function Login() {
   const [resetSent, setResetSent] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
 
+  // FIX (zie audit): session===undefined betekent "nog aan het checken of
+  // er al een sessie is" — dat gaf eerder een korte flits van het
+  // loginformulier te zien voor iemand die al ingelogd was, vóórdat de
+  // redirect naar het dashboard plaatsvond.
+  if (session === undefined) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0b0d" }}>
+        <Loader2 size={22} className="animate-spin" style={{ color: "#c9a668" }} />
+      </div>
+    );
+  }
+
   if (session) {
     return <Navigate to={location.state?.from?.pathname || "/portal/dashboard"} replace />;
   }

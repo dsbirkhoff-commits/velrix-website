@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { Gauge, LayoutDashboard, CalendarClock, Phone, Users, Bot, Settings, LogOut, ShieldCheck } from "lucide-react";
+import { Gauge, LayoutDashboard, CalendarClock, Phone, Users, Bot, Settings, LogOut, ShieldCheck, Loader2, AlertTriangle } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext.jsx";
 
 const NAV = [
@@ -13,7 +13,44 @@ const NAV = [
 ];
 
 export default function DashboardLayout() {
-  const { user, membership, isVelrixAdmin, signOut } = useAuth();
+  const { user, membership, isVelrixAdmin, loadingMembership, signOut } = useAuth();
+
+  // FIX (zie audit): eerder bleven alle 6 pagina's voor altijd op "Laden…"
+  // staan als membership nooit oploste (ontbrekende memberships-rij,
+  // RLS-probleem, netwerkfout) — geen foutmelding, geen empty state, de
+  // pagina leek gewoon bevroren. Die afhandeling zit nu centraal hier,
+  // vóórdat de zes pagina's zelf ooit renderen, in plaats van in elke
+  // pagina apart (waar hij zes keer consistent moest kloppen en dat niet
+  // deed).
+  if (loadingMembership) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0b0d" }}>
+        <Loader2 size={22} className="animate-spin" style={{ color: "#c9a668" }} />
+      </div>
+    );
+  }
+
+  if (!membership && !isVelrixAdmin) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0b0d", padding: 20 }}>
+        <div style={{ maxWidth: 420, textAlign: "center", color: "#f3f1ec", fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
+          <AlertTriangle size={26} style={{ color: "#e6947a", marginBottom: 14 }} />
+          <h1 style={{ fontFamily: "Georgia, serif", fontSize: 19, fontWeight: 500, marginBottom: 8 }}>Geen organisatie gekoppeld</h1>
+          <p style={{ fontSize: 13.5, color: "#9a9c9f", lineHeight: 1.6 }}>
+            Dit account (<strong>{user?.email}</strong>) is ingelogd, maar hoort nog niet bij een organisatie in VELRIX. Neem
+            contact op via <a href="mailto:daniel@velrix.nl" style={{ color: "#e6cd94" }}>daniel@velrix.nl</a> om dit te
+            laten koppelen.
+          </p>
+          <button
+            onClick={signOut}
+            style={{ marginTop: 20, display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, border: "1px solid #34383f", background: "none", color: "#f3f1ec", cursor: "pointer", fontSize: 13 }}
+          >
+            <LogOut size={14} /> Uitloggen
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dash-shell">

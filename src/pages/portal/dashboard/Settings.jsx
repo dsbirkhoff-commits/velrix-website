@@ -12,7 +12,7 @@ export default function Settings() {
   const [members, setMembers] = useState([]);
 
   useEffect(() => {
-    if (!orgId) return;
+    if (!orgId) { setLoading(false); return; } // FIX: voorkomt oneindig "Laden…" als orgId nooit een waarde krijgt (zie audit)
     let cancelled = false;
     Promise.all([
       supabase.from("calendar_connections").select("status, google_account_email, calendar_id, timezone").eq("organization_id", orgId).maybeSingle(),

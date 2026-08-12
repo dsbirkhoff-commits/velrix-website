@@ -22,7 +22,7 @@ export default function Appointments() {
   const [rows, setRows] = useState([]);
 
   useEffect(() => {
-    if (!orgId) return;
+    if (!orgId) { setLoading(false); return; } // FIX: voorkomt oneindig "Laden…" als orgId nooit een waarde krijgt (zie audit)
     let cancelled = false;
     supabase
       .from("appointments")

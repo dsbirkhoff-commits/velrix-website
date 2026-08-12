@@ -18,7 +18,7 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(undefined); // undefined = loading, null = signed out
   const [profile, setProfile] = useState(null); // { is_velrix_admin }
   const [membership, setMembership] = useState(null); // { organization_id, role, organizations: { name } }
-  const [loadingMembership, setLoadingMembership] = useState(false);
+  const [loadingMembership, setLoadingMembership] = useState(true); // start op true: we weten pas na de eerste effect-run of er wel/geen membership is — anders is er een moment waarop membership===null en loadingMembership===false lijkt, terwijl het laden nog moet beginnen
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -32,6 +32,7 @@ export function AuthProvider({ children }) {
       if (!session?.user) {
         setProfile(null);
         setMembership(null);
+        setLoadingMembership(false);
         return;
       }
       setLoadingMembership(true);

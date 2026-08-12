@@ -25,16 +25,26 @@ export default function ResetPassword() {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    // Supabase parses the URL fragment (#access_token=...&type=recovery)
-    // automatically; PASSWORD_RECOVERY fires once that session is ready.
+    // FIX (zie audit): de oude fallback beschouwde ELKE actieve sessie als
+    // bewijs van een geldige reset-link — dus een al ingelogde gebruiker
+    // die deze URL rechtstreeks bezocht kon meteen een nieuw wachtwoord
+    // zetten, zonder ooit een echte reset-mail te hebben ontvangen. Nu
+    // wordt de fallback alleen vertrouwd als de URL zelf daadwerkelijk een
+    // recovery-token bevat (#...&type=recovery) — de primaire, correcte
+    // detectie blijft de PASSWORD_RECOVERY-gebeurtenis hieronder.
+    const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const isRecoveryLink = params.get("type") === "recovery";
+
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setReady(true);
     });
-    // Fallback: if the event already fired before this listener attached,
-    // a valid session is itself sufficient proof the link was genuine.
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-    });
+
+    if (isRecoveryLink) {
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) setReady(true);
+      });
+    }
+
     return () => sub.subscription.unsubscribe();
   }, []);
 

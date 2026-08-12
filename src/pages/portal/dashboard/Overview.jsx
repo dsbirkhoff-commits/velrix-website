@@ -29,7 +29,7 @@ export default function Overview() {
   const [calendarStatus, setCalendarStatus] = useState(null);
 
   useEffect(() => {
-    if (!orgId) return;
+    if (!orgId) { setLoading(false); return; } // FIX: voorkomt oneindig "Laden…" als orgId nooit een waarde krijgt (zie audit)
     let cancelled = false;
     async function load() {
       setLoading(true);

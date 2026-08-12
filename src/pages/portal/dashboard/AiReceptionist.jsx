@@ -27,7 +27,7 @@ export default function AiReceptionist() {
   const [newFaqA, setNewFaqA] = useState("");
 
   useEffect(() => {
-    if (!orgId) return;
+    if (!orgId) { setLoading(false); return; } // FIX: voorkomt oneindig "Laden…" als orgId nooit een waarde krijgt (zie audit)
     let cancelled = false;
     Promise.all([
       supabase.from("ai_settings").select("*").eq("organization_id", orgId).maybeSingle(),
