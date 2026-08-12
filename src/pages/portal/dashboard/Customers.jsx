@@ -1,179 +1,62 @@
 import React, { useEffect, useState } from "react";
-import { Users, Loader2, Plus, X, Check, Pencil, Trash2 } from "lucide-react";
-import { portalApi } from "../../../lib/portalApi.js";
+import { Users, Loader2 } from "lucide-react";
+import { supabase } from "../../../lib/supabaseClient.js";
+import { useAuth } from "../../../contexts/AuthContext.jsx";
 import DashboardPageStyles from "../../../components/DashboardPageStyles.jsx";
 
-const EMPTY_FORM = { voornaam: "", achternaam: "", email: "", telefoonnummer: "", kenteken: "", voertuig_merk: "", voertuig_model: "", bouwjaar: "", notities: "" };
-
 export default function Customers() {
+  const { membership } = useAuth();
+  const orgId = membership?.organization_id;
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
-  const [error, setError] = useState(null);
-  const [toast, setToast] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [newForm, setNewForm] = useState(EMPTY_FORM);
-  const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState(EMPTY_FORM);
-  const [busyId, setBusyId] = useState(null);
 
-  const load = () => {
-    setLoading(true);
-    portalApi
-      .listCustomers()
-      .then((data) => setRows(data))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  };
-  useEffect(load, []);
-
-  const showToast = (type, msg) => {
-    setToast({ type, msg });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const submitNew = async (e) => {
-    e.preventDefault();
-    if (!newForm.voornaam.trim() && !newForm.achternaam.trim()) return;
-    setAdding(true);
-    try {
-      const created = await portalApi.createCustomer(newForm);
-      setRows((r) => [created, ...r]);
-      setNewForm(EMPTY_FORM);
-      setShowForm(false);
-      showToast("success", "Opgeslagen");
-    } catch (err) {
-      showToast("error", err.message || "Toevoegen mislukt.");
-    } finally {
-      setAdding(false);
-    }
-  };
-
-  const startEdit = (row) => {
-    setEditingId(row.id);
-    setEditForm({
-      voornaam: row.voornaam || "", achternaam: row.achternaam || "", email: row.email || "", telefoonnummer: row.telefoonnummer || "",
-      kenteken: row.kenteken || "", voertuig_merk: row.voertuig_merk || "", voertuig_model: row.voertuig_model || "", bouwjaar: row.bouwjaar || "", notities: row.notities || "",
-    });
-  };
-
-  const saveEdit = async (id) => {
-    setBusyId(id);
-    try {
-      const updated = await portalApi.updateCustomer(id, editForm);
-      setRows((r) => r.map((row) => (row.id === id ? updated : row)));
-      setEditingId(null);
-      showToast("success", "Opgeslagen");
-    } catch (err) {
-      showToast("error", err.message || "Bijwerken mislukt.");
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const remove = async (id) => {
-    if (!window.confirm("Deze klant verwijderen?")) return;
-    setBusyId(id);
-    try {
-      await portalApi.deleteCustomer(id);
-      setRows((r) => r.filter((row) => row.id !== id));
-      showToast("success", "Verwijderd");
-    } catch (err) {
-      showToast("error", err.message || "Verwijderen mislukt.");
-    } finally {
-      setBusyId(null);
-    }
-  };
+  useEffect(() => {
+    if (!orgId) { setLoading(false); return; } // FIX: voorkomt oneindig "Laden…" als orgId nooit een waarde krijgt (zie audit)
+    let cancelled = false;
+    supabase
+      .from("customers")
+      .select("id, naam, email, telefoonnummer, laatste_contact, aantal_afspraken, status")
+      .eq("organization_id", orgId)
+      .order("laatste_contact", { ascending: false, nullsFirst: false })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) console.error(error);
+        setRows(data || []);
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [orgId]);
 
   return (
     <div>
       <DashboardPageStyles />
-      <div className="dp-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-        <div>
-          <h1 className="dp-title">Mijn klanten</h1>
-          <p className="dp-sub">Alle klanten van jouw garage, inclusief voertuiggegevens.</p>
-        </div>
-        <button className="dp-btn" onClick={() => setShowForm((v) => !v)}><Plus size={15} /> Nieuwe klant</button>
+      <div className="dp-header">
+        <h1 className="dp-title">Klanten</h1>
+        <p className="dp-sub">Iedereen die via de website een kennismaking heeft geboekt.</p>
       </div>
-
-      {toast && <div className={`dp-toast ${toast.type === "success" ? "dp-toast-success" : "dp-toast-error"}`}>{toast.msg}</div>}
-
-      {showForm && (
-        <div className="dp-card" style={{ marginBottom: 16 }}>
-          <div className="dp-section-title">Nieuwe klant</div>
-          <form onSubmit={submitNew}>
-            <div className="dp-grid dp-cols-4" style={{ marginBottom: 4 }}>
-              <div className="dp-field"><label className="dp-label">Voornaam</label><input className="dp-input" value={newForm.voornaam} onChange={(e) => setNewForm((f) => ({ ...f, voornaam: e.target.value }))} required /></div>
-              <div className="dp-field"><label className="dp-label">Achternaam</label><input className="dp-input" value={newForm.achternaam} onChange={(e) => setNewForm((f) => ({ ...f, achternaam: e.target.value }))} /></div>
-              <div className="dp-field"><label className="dp-label">E-mail</label><input type="email" className="dp-input" value={newForm.email} onChange={(e) => setNewForm((f) => ({ ...f, email: e.target.value }))} /></div>
-              <div className="dp-field"><label className="dp-label">Telefoonnummer</label><input className="dp-input" value={newForm.telefoonnummer} onChange={(e) => setNewForm((f) => ({ ...f, telefoonnummer: e.target.value }))} /></div>
-            </div>
-            <div className="dp-grid dp-cols-4" style={{ marginBottom: 4 }}>
-              <div className="dp-field"><label className="dp-label">Kenteken</label><input className="dp-input" value={newForm.kenteken} onChange={(e) => setNewForm((f) => ({ ...f, kenteken: e.target.value }))} /></div>
-              <div className="dp-field"><label className="dp-label">Merk</label><input className="dp-input" value={newForm.voertuig_merk} onChange={(e) => setNewForm((f) => ({ ...f, voertuig_merk: e.target.value }))} /></div>
-              <div className="dp-field"><label className="dp-label">Model</label><input className="dp-input" value={newForm.voertuig_model} onChange={(e) => setNewForm((f) => ({ ...f, voertuig_model: e.target.value }))} /></div>
-              <div className="dp-field"><label className="dp-label">Bouwjaar</label><input type="number" className="dp-input" value={newForm.bouwjaar} onChange={(e) => setNewForm((f) => ({ ...f, bouwjaar: e.target.value }))} /></div>
-            </div>
-            <div className="dp-field"><label className="dp-label">Notities</label><input className="dp-input" value={newForm.notities} onChange={(e) => setNewForm((f) => ({ ...f, notities: e.target.value }))} /></div>
-            <button type="submit" className="dp-btn" disabled={adding}>{adding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Klant toevoegen</button>
-          </form>
-        </div>
-      )}
 
       <div className="dp-card" style={{ padding: 0, overflow: "hidden" }}>
         {loading ? (
           <div className="dp-empty"><Loader2 size={20} className="animate-spin" style={{ margin: "0 auto 12px" }} /><br />Laden…</div>
-        ) : error ? (
-          <div className="dp-empty">{error}</div>
         ) : rows.length === 0 ? (
           <div className="dp-empty">
             <div className="dp-empty-icon"><Users size={20} /></div>
-            Nog geen klanten. Klik op "Nieuwe klant" om je eerste klant toe te voegen.
+            Nog geen klanten. Zodra iemand een kennismaking boekt, verschijnt die hier automatisch.
           </div>
         ) : (
           <table className="dp-table">
             <thead>
-              <tr><th>Naam</th><th>Contact</th><th>Kenteken</th><th>Voertuig</th><th>Notities</th><th></th></tr>
+              <tr><th>Naam</th><th>E-mail</th><th>Telefoon</th><th>Laatste contact</th><th>Afspraken</th><th>Status</th></tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  {editingId === row.id ? (
-                    <>
-                      <td style={{ display: "flex", gap: 6 }}>
-                        <input className="dp-input" style={{ width: 90 }} value={editForm.voornaam} onChange={(e) => setEditForm((f) => ({ ...f, voornaam: e.target.value }))} />
-                        <input className="dp-input" style={{ width: 90 }} value={editForm.achternaam} onChange={(e) => setEditForm((f) => ({ ...f, achternaam: e.target.value }))} />
-                      </td>
-                      <td>
-                        <input className="dp-input" style={{ marginBottom: 4 }} value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} placeholder="E-mail" />
-                        <input className="dp-input" value={editForm.telefoonnummer} onChange={(e) => setEditForm((f) => ({ ...f, telefoonnummer: e.target.value }))} placeholder="Telefoon" />
-                      </td>
-                      <td><input className="dp-input" style={{ width: 100 }} value={editForm.kenteken} onChange={(e) => setEditForm((f) => ({ ...f, kenteken: e.target.value }))} /></td>
-                      <td>
-                        <input className="dp-input" style={{ marginBottom: 4 }} value={editForm.voertuig_merk} onChange={(e) => setEditForm((f) => ({ ...f, voertuig_merk: e.target.value }))} placeholder="Merk" />
-                        <input className="dp-input" value={editForm.voertuig_model} onChange={(e) => setEditForm((f) => ({ ...f, voertuig_model: e.target.value }))} placeholder="Model" />
-                      </td>
-                      <td><input className="dp-input" value={editForm.notities} onChange={(e) => setEditForm((f) => ({ ...f, notities: e.target.value }))} /></td>
-                      <td style={{ whiteSpace: "nowrap" }}>
-                        <button className="dp-btn-ghost" style={{ padding: "6px 10px" }} onClick={() => saveEdit(row.id)} disabled={busyId === row.id}>
-                          {busyId === row.id ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
-                        </button>
-                        <button className="dp-btn-ghost" style={{ padding: "6px 10px", marginLeft: 6 }} onClick={() => setEditingId(null)}><X size={13} /></button>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td>{row.naam}</td>
-                      <td>{row.email || "—"}{row.telefoonnummer ? ` · ${row.telefoonnummer}` : ""}</td>
-                      <td>{row.kenteken || "—"}</td>
-                      <td>{[row.voertuig_merk, row.voertuig_model, row.bouwjaar].filter(Boolean).join(" ") || "—"}</td>
-                      <td>{row.notities || "—"}</td>
-                      <td style={{ whiteSpace: "nowrap" }}>
-                        <button className="dp-btn-ghost" style={{ padding: "6px 10px" }} onClick={() => startEdit(row)}><Pencil size={13} /></button>
-                        <button className="dp-btn-ghost" style={{ padding: "6px 10px", marginLeft: 6, color: "var(--red)" }} onClick={() => remove(row.id)} disabled={busyId === row.id}><Trash2 size={13} /></button>
-                      </td>
-                    </>
-                  )}
+              {rows.map((r) => (
+                <tr key={r.id}>
+                  <td>{r.naam}</td>
+                  <td>{r.email || "—"}</td>
+                  <td>{r.telefoonnummer || "—"}</td>
+                  <td>{r.laatste_contact ? new Date(r.laatste_contact).toLocaleDateString("nl-NL") : "—"}</td>
+                  <td>{r.aantal_afspraken}</td>
+                  <td><span className={`dp-badge ${r.status === "actief" ? "dp-badge-green" : "dp-badge-gray"}`}>{r.status}</span></td>
                 </tr>
               ))}
             </tbody>

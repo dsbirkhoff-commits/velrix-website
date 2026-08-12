@@ -64,7 +64,7 @@ export default function CompanySettings() {
     <div>
       <DashboardPageStyles />
       <div className="dp-header">
-        <h1 className="dp-title">Mijn bedrijf</h1>
+        <h1 className="dp-title">Bedrijfsprofiel</h1>
         <p className="dp-sub">Deze gegevens vormen de basis van je VELRIX-systeem.</p>
       </div>
 

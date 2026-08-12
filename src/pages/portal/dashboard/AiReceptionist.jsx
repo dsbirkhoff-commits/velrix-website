@@ -73,7 +73,7 @@ export default function AiReceptionist() {
     <div>
       <DashboardPageStyles />
       <div className="dp-header">
-        <h1 className="dp-title">Mijn AI Receptionist</h1>
+        <h1 className="dp-title">AI Receptionist</h1>
         <p className="dp-sub">Bepaalt hoe de AI Receptionist zich straks gedraagt aan de telefoon. De daadwerkelijke telefonie is nog niet actief.</p>
       </div>
 
