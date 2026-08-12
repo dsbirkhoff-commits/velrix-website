@@ -1,74 +1,62 @@
 import React, { useEffect, useState } from "react";
-import { Bot, Loader2, Save, Plus, X, CalendarClock, Check } from "lucide-react";
-import { supabase } from "../../../lib/supabaseClient.js";
-import { useAuth } from "../../../contexts/AuthContext.jsx";
+import { Bot, Loader2, Save, Plus, X, Power } from "lucide-react";
+import { portalApi } from "../../../lib/portalApi.js";
 import DashboardPageStyles from "../../../components/DashboardPageStyles.jsx";
 
-const DAYS = ["Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag", "Zondag"];
+const EMPTY_FORM = {
+  ai_actief: false,
+  begroeting: "",
+  bedrijfsomschrijving: "",
+  faq: [],
+  toegestane_onderwerpen: "",
+  verboden_onderwerpen: "",
+  doorverbinden_wanneer: "",
+  instructies: "",
+};
 
 export default function AiReceptionist() {
-  const { membership } = useAuth();
-  const orgId = membership?.organization_id;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
-  const [calendarStatus, setCalendarStatus] = useState(null);
-  const [form, setForm] = useState({
-    bedrijfsnaam: "",
-    adres: "",
-    openingstijden: {},
-    diensten: [],
-    faq: [],
-    afspraakduur_minuten: 30,
-    instructies: "",
-  });
-  const [newDienst, setNewDienst] = useState("");
+  const [error, setError] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
   const [newFaqQ, setNewFaqQ] = useState("");
   const [newFaqA, setNewFaqA] = useState("");
 
   useEffect(() => {
-    if (!orgId) { setLoading(false); return; } // FIX: voorkomt oneindig "Laden…" als orgId nooit een waarde krijgt (zie audit)
     let cancelled = false;
-    Promise.all([
-      supabase.from("ai_settings").select("*").eq("organization_id", orgId).maybeSingle(),
-      supabase.from("calendar_connections").select("status").eq("organization_id", orgId).maybeSingle(),
-    ]).then(([{ data, error }, { data: calData }]) => {
-      if (cancelled) return;
-      if (error) console.error(error);
-      if (data) {
+    portalApi
+      .getAiSettings()
+      .then((data) => {
+        if (cancelled) return;
         setForm({
-          bedrijfsnaam: data.bedrijfsnaam || "",
-          adres: data.adres || "",
-          openingstijden: data.openingstijden || {},
-          diensten: data.diensten || [],
+          ai_actief: Boolean(data.ai_actief),
+          begroeting: data.begroeting || "",
+          bedrijfsomschrijving: data.bedrijfsomschrijving || "",
           faq: data.faq || [],
-          afspraakduur_minuten: data.afspraakduur_minuten || 30,
+          toegestane_onderwerpen: data.toegestane_onderwerpen || "",
+          verboden_onderwerpen: data.verboden_onderwerpen || "",
+          doorverbinden_wanneer: data.doorverbinden_wanneer || "",
           instructies: data.instructies || "",
         });
-      }
-      setCalendarStatus(calData?.status || "not_connected");
-      setLoading(false);
-    });
+      })
+      .catch((err) => !cancelled && setError(err.message))
+      .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
-  }, [orgId]);
+  }, []);
 
   const save = async () => {
     setSaving(true);
     setToast(null);
-    const { error } = await supabase.from("ai_settings").upsert(
-      { organization_id: orgId, ...form, updated_at: new Date().toISOString() },
-      { onConflict: "organization_id" }
-    );
-    setSaving(false);
-    setToast(error ? { type: "error", msg: "Opslaan mislukt. Probeer het opnieuw." } : { type: "success", msg: "Instellingen opgeslagen." });
+    try {
+      await portalApi.updateAiSettings(form);
+      setToast({ type: "success", msg: "Opgeslagen" });
+    } catch (err) {
+      setToast({ type: "error", msg: err.message || "Opslaan mislukt." });
+    } finally {
+      setSaving(false);
+    }
   };
-
-  const addDienst = () => {
-    if (!newDienst.trim()) return;
-    setForm((f) => ({ ...f, diensten: [...f.diensten, newDienst.trim()] }));
-    setNewDienst("");
-  };
-  const removeDienst = (i) => setForm((f) => ({ ...f, diensten: f.diensten.filter((_, idx) => idx !== i) }));
 
   const addFaq = () => {
     if (!newFaqQ.trim() || !newFaqA.trim()) return;
@@ -78,112 +66,82 @@ export default function AiReceptionist() {
   };
   const removeFaq = (i) => setForm((f) => ({ ...f, faq: f.faq.filter((_, idx) => idx !== i) }));
 
-  if (loading) {
-    return <div className="dp-empty"><Loader2 size={20} className="animate-spin" /></div>;
-  }
+  if (loading) return <div className="dp-empty"><Loader2 size={20} className="animate-spin" /></div>;
+  if (error) return <div className="dp-empty">{error}</div>;
 
   return (
     <div>
       <DashboardPageStyles />
       <div className="dp-header">
         <h1 className="dp-title">AI Receptionist</h1>
-        <p className="dp-sub">Deze gegevens bepalen straks hoe de AI Receptionist telefoontjes en klantvragen afhandelt.</p>
+        <p className="dp-sub">Bepaalt hoe de AI Receptionist zich straks gedraagt aan de telefoon. De daadwerkelijke telefonie is nog niet actief.</p>
       </div>
 
       {toast && <div className={`dp-toast ${toast.type === "success" ? "dp-toast-success" : "dp-toast-error"}`}>{toast.msg}</div>}
 
-      <div className="dp-grid dp-cols-2" style={{ marginBottom: 16 }}>
-        <div className="dp-card">
-          <div className="dp-kpi-label"><Bot size={14} /> AI-status</div>
-          <div style={{ marginTop: 10 }}>
-            <span className="dp-badge dp-badge-gray">Nog niet actief (voice AI in ontwikkeling)</span>
-          </div>
-        </div>
-        <div className="dp-card">
-          <div className="dp-kpi-label"><CalendarClock size={14} /> Google Calendar status</div>
-          <div style={{ marginTop: 10 }}>
-            {calendarStatus === "connected" ? (
-              <span className="dp-badge dp-badge-green"><Check size={11} /> Verbonden</span>
-            ) : (
-              <span className="dp-badge dp-badge-gray">Niet gekoppeld</span>
-            )}
-          </div>
-        </div>
+      <div className="dp-card" style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="dp-section-title" style={{ marginBottom: 0 }}><Power size={15} /> AI Receptionist</div>
+        <span
+          className={`dp-badge ${form.ai_actief ? "dp-badge-green" : "dp-badge-gray"}`}
+          style={{ cursor: "pointer" }}
+          onClick={() => setForm((f) => ({ ...f, ai_actief: !f.ai_actief }))}
+        >
+          {form.ai_actief ? "Aan" : "Uit"}
+        </span>
       </div>
 
       <div className="dp-grid dp-cols-2" style={{ marginBottom: 16 }}>
         <div className="dp-card">
-          <div className="dp-section-title"><Bot size={15} /> Bedrijfsgegevens</div>
+          <div className="dp-section-title"><Bot size={15} /> Begroeting &amp; omschrijving</div>
           <div className="dp-field">
-            <label className="dp-label">Bedrijfsnaam</label>
-            <input className="dp-input" value={form.bedrijfsnaam} onChange={(e) => setForm((f) => ({ ...f, bedrijfsnaam: e.target.value }))} />
+            <label className="dp-label">Begroeting</label>
+            <input className="dp-input" placeholder="Bijv. 'Goedemiddag, u spreekt met [garage]...'" value={form.begroeting} onChange={(e) => setForm((f) => ({ ...f, begroeting: e.target.value }))} />
           </div>
           <div className="dp-field">
-            <label className="dp-label">Adres</label>
-            <input className="dp-input" value={form.adres} onChange={(e) => setForm((f) => ({ ...f, adres: e.target.value }))} />
-          </div>
-          <div className="dp-field">
-            <label className="dp-label">Afspraakduur (minuten)</label>
-            <input type="number" className="dp-input" value={form.afspraakduur_minuten} onChange={(e) => setForm((f) => ({ ...f, afspraakduur_minuten: Number(e.target.value) }))} />
+            <label className="dp-label">Bedrijfsomschrijving</label>
+            <textarea className="dp-textarea" rows={3} value={form.bedrijfsomschrijving} onChange={(e) => setForm((f) => ({ ...f, bedrijfsomschrijving: e.target.value }))} />
           </div>
         </div>
 
         <div className="dp-card">
-          <div className="dp-section-title">Openingstijden</div>
-          {DAYS.map((day) => (
-            <div key={day} className="dp-field" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-              <span style={{ width: 90, fontSize: 12.5, color: "var(--text-muted)" }}>{day}</span>
-              <input
-                className="dp-input"
-                placeholder="bijv. 08:00–17:30 of Gesloten"
-                value={form.openingstijden[day] || ""}
-                onChange={(e) => setForm((f) => ({ ...f, openingstijden: { ...f.openingstijden, [day]: e.target.value } }))}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="dp-grid dp-cols-2" style={{ marginBottom: 16 }}>
-        <div className="dp-card">
-          <div className="dp-section-title">Diensten</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-            {form.diensten.map((d, i) => (
-              <span key={i} className="dp-badge dp-badge-gray" style={{ gap: 6 }}>
-                {d} <X size={11} style={{ cursor: "pointer" }} onClick={() => removeDienst(i)} />
-              </span>
-            ))}
-            {form.diensten.length === 0 && <span style={{ fontSize: 12.5, color: "var(--text-dim)" }}>Nog geen diensten toegevoegd.</span>}
+          <div className="dp-section-title">Grenzen van het gesprek</div>
+          <div className="dp-field">
+            <label className="dp-label">Wat de AI wél mag beantwoorden</label>
+            <textarea className="dp-textarea" rows={2} value={form.toegestane_onderwerpen} onChange={(e) => setForm((f) => ({ ...f, toegestane_onderwerpen: e.target.value }))} />
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input className="dp-input" placeholder="bijv. APK-keuring" value={newDienst} onChange={(e) => setNewDienst(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addDienst())} />
-            <button className="dp-btn-ghost" onClick={addDienst} type="button"><Plus size={14} /> Toevoegen</button>
+          <div className="dp-field">
+            <label className="dp-label">Wat de AI niet mag beantwoorden</label>
+            <textarea className="dp-textarea" rows={2} value={form.verboden_onderwerpen} onChange={(e) => setForm((f) => ({ ...f, verboden_onderwerpen: e.target.value }))} />
           </div>
-        </div>
-
-        <div className="dp-card">
-          <div className="dp-section-title">Veelgestelde vragen</div>
-          {form.faq.map((item, i) => (
-            <div key={i} style={{ marginBottom: 10, padding: "10px 12px", background: "var(--ink-2)", borderRadius: 10, border: "1px solid var(--border)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                <strong style={{ fontSize: 12.5 }}>{item.q}</strong>
-                <X size={13} style={{ cursor: "pointer", flexShrink: 0, color: "var(--text-dim)" }} onClick={() => removeFaq(i)} />
-              </div>
-              <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "4px 0 0" }}>{item.a}</p>
-            </div>
-          ))}
-          <div className="dp-field"><input className="dp-input" placeholder="Vraag" value={newFaqQ} onChange={(e) => setNewFaqQ(e.target.value)} /></div>
-          <div className="dp-field"><input className="dp-input" placeholder="Antwoord" value={newFaqA} onChange={(e) => setNewFaqA(e.target.value)} /></div>
-          <button className="dp-btn-ghost" onClick={addFaq} type="button"><Plus size={14} /> FAQ toevoegen</button>
+          <div className="dp-field">
+            <label className="dp-label">Wanneer doorverbinden naar een mens</label>
+            <textarea className="dp-textarea" rows={2} value={form.doorverbinden_wanneer} onChange={(e) => setForm((f) => ({ ...f, doorverbinden_wanneer: e.target.value }))} />
+          </div>
         </div>
       </div>
 
       <div className="dp-card" style={{ marginBottom: 16 }}>
-        <div className="dp-section-title">Instructies voor AI Receptionist</div>
+        <div className="dp-section-title">Veelgestelde vragen</div>
+        {form.faq.map((item, i) => (
+          <div key={i} style={{ marginBottom: 10, padding: "10px 12px", background: "var(--ink-2)", borderRadius: 10, border: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+              <strong style={{ fontSize: 12.5 }}>{item.q}</strong>
+              <X size={13} style={{ cursor: "pointer", flexShrink: 0, color: "var(--text-dim)" }} onClick={() => removeFaq(i)} />
+            </div>
+            <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "4px 0 0" }}>{item.a}</p>
+          </div>
+        ))}
+        <div className="dp-field"><input className="dp-input" placeholder="Vraag" value={newFaqQ} onChange={(e) => setNewFaqQ(e.target.value)} /></div>
+        <div className="dp-field"><input className="dp-input" placeholder="Antwoord" value={newFaqA} onChange={(e) => setNewFaqA(e.target.value)} /></div>
+        <button className="dp-btn-ghost" onClick={addFaq} type="button"><Plus size={14} /> FAQ toevoegen</button>
+      </div>
+
+      <div className="dp-card" style={{ marginBottom: 16 }}>
+        <div className="dp-section-title">Overige instructies</div>
         <textarea
           className="dp-textarea"
-          rows={5}
-          placeholder="Bijv. toon, wat de AI wel/niet mag beloven, wanneer doorverbinden naar een mens..."
+          rows={4}
+          placeholder="Overige richtlijnen voor de AI Receptionist..."
           value={form.instructies}
           onChange={(e) => setForm((f) => ({ ...f, instructies: e.target.value }))}
         />
