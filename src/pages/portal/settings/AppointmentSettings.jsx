@@ -72,7 +72,7 @@ export default function AppointmentSettings() {
     <div>
       <DashboardPageStyles />
       <div className="dp-header">
-        <h1 className="dp-title">Afspraakinstellingen</h1>
+        <h1 className="dp-title">Mijn afspraakinstellingen</h1>
         <p className="dp-sub">Bepaalt straks hoe de publieke boekingsflow beschikbaarheid berekent.</p>
       </div>
 

@@ -97,7 +97,7 @@ export default function Services() {
     <div>
       <DashboardPageStyles />
       <div className="dp-header">
-        <h1 className="dp-title">Diensten</h1>
+        <h1 className="dp-title">Mijn diensten</h1>
         <p className="dp-sub">De diensten die jouw garage aanbiedt, met prijs en afspraakduur.</p>
       </div>
 
