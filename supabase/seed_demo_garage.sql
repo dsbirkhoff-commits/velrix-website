@@ -5,10 +5,16 @@
 -- script voegt een APARTE, tweede organisatie toe specifiek om zelf de
 -- klantervaring in te kunnen loggen en te bekijken.
 --
--- UITVOEREN NADAT je in Supabase Dashboard -> Authentication -> Users
--- op "Invite user" hebt geklikt voor daniel@velrix.nl (zie de
--- leveringstekst voor de exacte stappen) — dan bestaat de auth.users-rij
--- al en kun je hier de User UID invullen.
+-- Zoekt het account zelf op via e-mailadres (auth.users) — je hoeft dus
+-- geen User UID meer handmatig te kopiëren of te plakken. Veilig om
+-- opnieuw te draaien (idempotent): bestaande rijen worden niet
+-- gedupliceerd. Uitvoeren via Supabase Dashboard -> SQL Editor, NIET via
+-- de website — dit is bewust een server-side/admin-only handeling.
+--
+-- VOORWAARDE: het account daniel@velrix.nl moet al bestaan in
+-- Authentication -> Users (via "Invite user" of "Add user"). Bestaat het
+-- nog niet, dan voegen de stappen hieronder simpelweg niets toe (geen
+-- foutmelding, maar ook geen koppeling) — check dat eerst.
 
 insert into organizations (id, name)
 values ('00000000-0000-0000-0000-0000000000d1', 'VELRIX Demo Garage')
@@ -23,11 +29,13 @@ on conflict (id) do nothing;
 -- eraan wordt hier verwijderd, zodat je account voortaan uitsluitend bij
 -- "VELRIX Demo Garage" hoort.
 delete from memberships
-where user_id = '<DANIEL_USER_ID>'
+where user_id = (select id from auth.users where email = 'daniel@velrix.nl')
   and organization_id = '00000000-0000-0000-0000-000000000001';
 
 insert into memberships (user_id, organization_id, role)
-values ('<DANIEL_USER_ID>', '00000000-0000-0000-0000-0000000000d1', 'owner')
+select id, '00000000-0000-0000-0000-0000000000d1', 'owner'
+from auth.users
+where email = 'daniel@velrix.nl'
 on conflict (user_id, organization_id) do nothing;
 
 -- Bewust GEEN calendar_connections-rij: de instellingenpagina toont dan
@@ -40,3 +48,15 @@ on conflict (user_id, organization_id) do nothing;
 insert into ai_settings (organization_id, bedrijfsnaam)
 values ('00000000-0000-0000-0000-0000000000d1', 'VELRIX Demo Garage')
 on conflict (organization_id) do nothing;
+
+-- Verificatie: dit zou nu precies één rij moeten teruggeven. Geen rij?
+-- Dan bestaat het account daniel@velrix.nl nog niet in Authentication ->
+-- Users — zie de voorwaarde hierboven.
+select
+  u.email,
+  o.name as organization,
+  m.role
+from memberships m
+join auth.users u on u.id = m.user_id
+join organizations o on o.id = m.organization_id
+where u.email = 'daniel@velrix.nl' and o.id = '00000000-0000-0000-0000-0000000000d1';
