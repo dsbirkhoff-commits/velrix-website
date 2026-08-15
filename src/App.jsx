@@ -28,6 +28,7 @@ const PortalSettings = lazy(() => import("./pages/portal/dashboard/Settings.jsx"
 const CompanySettings = lazy(() => import("./pages/portal/settings/Company.jsx"));
 const Services = lazy(() => import("./pages/portal/Services.jsx"));
 const AppointmentSettings = lazy(() => import("./pages/portal/settings/AppointmentSettings.jsx"));
+const Invoices = lazy(() => import("./pages/portal/Invoices.jsx"));
 
 function PortalFallback() {
   return (
@@ -105,6 +106,7 @@ export default function App() {
             <Route path="/portal/settings/company" element={<Suspense fallback={<PortalFallback />}><CompanySettings /></Suspense>} />
             <Route path="/portal/settings/appointments" element={<Suspense fallback={<PortalFallback />}><AppointmentSettings /></Suspense>} />
             <Route path="/portal/services" element={<Suspense fallback={<PortalFallback />}><Services /></Suspense>} />
+            <Route path="/portal/invoices" element={<Suspense fallback={<PortalFallback />}><Invoices /></Suspense>} />
           </Route>
 
           <Route path="*" element={<Home />} />

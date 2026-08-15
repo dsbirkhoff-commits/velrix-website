@@ -1,15 +1,15 @@
 import React from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { Gauge, LayoutDashboard, CalendarClock, Phone, Users, Bot, Settings, LogOut, ShieldCheck, Loader2, AlertTriangle, Wrench } from "lucide-react";
+import { Gauge, LayoutDashboard, CalendarClock, Users, Bot, Settings, LogOut, ShieldCheck, Loader2, AlertTriangle, Wrench, Receipt } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext.jsx";
 
 const NAV = [
-  { to: "/portal/dashboard", label: "Overzicht", icon: LayoutDashboard, end: true },
+  { to: "/portal/dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/portal/appointments", label: "Afspraken", icon: CalendarClock },
-  { to: "/portal/calls", label: "Gesprekken", icon: Phone },
   { to: "/portal/customers", label: "Klanten", icon: Users },
   { to: "/portal/services", label: "Diensten", icon: Wrench },
   { to: "/portal/ai-receptionist", label: "AI Receptionist", icon: Bot },
+  { to: "/portal/invoices", label: "Facturen", icon: Receipt },
   { to: "/portal/settings", label: "Instellingen", icon: Settings },
 ];
 

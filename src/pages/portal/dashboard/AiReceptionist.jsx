@@ -95,7 +95,7 @@ export default function AiReceptionist() {
           <div className="dp-section-title"><Bot size={15} /> Begroeting &amp; omschrijving</div>
           <div className="dp-field">
             <label className="dp-label">Begroeting</label>
-            <input className="dp-input" placeholder="Bijv. 'Goedemiddag, u spreekt met [garage]...'" value={form.begroeting} onChange={(e) => setForm((f) => ({ ...f, begroeting: e.target.value }))} />
+            <input className="dp-input" placeholder="Bijv. 'Goedemiddag, u spreekt met [bedrijfsnaam]...'" value={form.begroeting} onChange={(e) => setForm((f) => ({ ...f, begroeting: e.target.value }))} />
           </div>
           <div className="dp-field">
             <label className="dp-label">Bedrijfsomschrijving</label>

@@ -29,6 +29,7 @@ async function request(path, options = {}) {
 export const portalApi = {
   getOrganization: () => request("/api/organization"),
   updateOrganization: (body) => request("/api/organization", { method: "PUT", body: JSON.stringify(body) }),
+  listInvoices: () => request("/api/organization?resource=invoices"),
 
   getAppointmentSettings: () => request("/api/appointment-settings"),
   updateAppointmentSettings: (body) => request("/api/appointment-settings", { method: "PUT", body: JSON.stringify(body) }),

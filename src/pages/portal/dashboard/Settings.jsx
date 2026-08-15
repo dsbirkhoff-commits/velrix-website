@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Building2, Mail, CalendarClock, Users, Bell, Check, Loader2, Wrench, ArrowRight } from "lucide-react";
+import { Building2, Mail, CalendarClock, Users, Bell, Check, Loader2, ArrowRight } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient.js";
 import { useAuth } from "../../../contexts/AuthContext.jsx";
 import DashboardPageStyles from "../../../components/DashboardPageStyles.jsx";
@@ -42,12 +42,12 @@ export default function Settings() {
           <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, fontWeight: 500 }}><Building2 size={16} /> Bedrijf</span>
           <ArrowRight size={14} style={{ color: "var(--text-dim)" }} />
         </Link>
-        <Link to="/portal/services" className="dp-card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", color: "inherit" }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, fontWeight: 500 }}><Wrench size={16} /> Diensten</span>
-          <ArrowRight size={14} style={{ color: "var(--text-dim)" }} />
-        </Link>
         <Link to="/portal/settings/appointments" className="dp-card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", color: "inherit" }}>
           <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, fontWeight: 500 }}><CalendarClock size={16} /> Afspraken</span>
+          <ArrowRight size={14} style={{ color: "var(--text-dim)" }} />
+        </Link>
+        <Link to="/portal/ai-receptionist" className="dp-card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", color: "inherit" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, fontWeight: 500 }}><Bell size={16} /> AI Receptionist</span>
           <ArrowRight size={14} style={{ color: "var(--text-dim)" }} />
         </Link>
       </div>

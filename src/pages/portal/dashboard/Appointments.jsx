@@ -53,7 +53,7 @@ export default function Appointments() {
         ) : rows.length === 0 ? (
           <div className="dp-empty">
             <div className="dp-empty-icon"><CalendarClock size={20} /></div>
-            Je afspraken verschijnen hier. Zodra iemand via de website een kennismaking boekt, staat 'm hier automatisch.
+            Er zijn nog geen afspraken.
           </div>
         ) : (
           <table className="dp-table">

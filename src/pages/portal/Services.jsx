@@ -98,7 +98,7 @@ export default function Services() {
       <DashboardPageStyles />
       <div className="dp-header">
         <h1 className="dp-title">Diensten</h1>
-        <p className="dp-sub">De diensten die jouw garage aanbiedt, met prijs en afspraakduur.</p>
+        <p className="dp-sub">De diensten die je bedrijf aanbiedt, met prijs en afspraakduur.</p>
       </div>
 
       {toast && <div className={`dp-toast ${toast.type === "success" ? "dp-toast-success" : "dp-toast-error"}`}>{toast.msg}</div>}
@@ -108,7 +108,7 @@ export default function Services() {
         <form onSubmit={submitNew} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 10, alignItems: "end" }}>
           <div className="dp-field" style={{ marginBottom: 0 }}>
             <label className="dp-label">Naam</label>
-            <input className="dp-input" placeholder="bijv. APK" value={newForm.naam} onChange={(e) => setNewForm((f) => ({ ...f, naam: e.target.value }))} required />
+            <input className="dp-input" placeholder="Naam van de dienst" value={newForm.naam} onChange={(e) => setNewForm((f) => ({ ...f, naam: e.target.value }))} required />
           </div>
           <div className="dp-field" style={{ marginBottom: 0 }}>
             <label className="dp-label">Prijs (€)</label>
