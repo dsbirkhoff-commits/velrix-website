@@ -87,8 +87,18 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "PUT") {
+    // TIJDELIJKE DEBUG-LOGGING — geen enkele logica gewijzigd, alleen
+    // console.log-regels toegevoegd om de exacte request/response/
+    // Supabase-uitkomst vast te leggen. Te verwijderen zodra de oorzaak
+    // vaststaat.
+    console.log("[DEBUG PUT /api/customers] req.query:", JSON.stringify(req.query));
+    console.log("[DEBUG PUT /api/customers] req.body (raw):", JSON.stringify(req.body));
+    console.log("[DEBUG PUT /api/customers] organizationId (server-side resolved):", organizationId);
+
     const { id } = req.query || {};
+    console.log("[DEBUG PUT /api/customers] uitgelezen id:", id, "| type:", typeof id);
     if (!id) {
+      console.log("[DEBUG PUT /api/customers] STOP: geen id -> 400");
       res.status(400).json({ error: "Ontbrekend id." });
       return;
     }
@@ -105,28 +115,31 @@ export default async function handler(req, res) {
     if (body.status !== undefined) updates.status = body.status;
 
     if (body.custom_fields !== undefined) {
+      console.log("[DEBUG PUT /api/customers] custom_fields meegestuurd:", JSON.stringify(body.custom_fields));
       let schema;
       try {
         schema = await getSchemaForOrg(supabase, organizationId);
-      } catch {
+        console.log("[DEBUG PUT /api/customers] schema opgehaald, aantal velden:", schema.length);
+      } catch (schemaErr) {
+        console.log("[DEBUG PUT /api/customers] STOP: schema-fetch faalde:", schemaErr?.message || schemaErr);
         res.status(500).json({ error: "Kon schema niet controleren." });
         return;
       }
       const result = validateCustomFields(body.custom_fields, schema);
+      console.log("[DEBUG PUT /api/customers] validatieresultaat:", JSON.stringify({ valid: result.valid, errors: result.errors }));
       if (!result.valid) {
+        console.log("[DEBUG PUT /api/customers] STOP: validatie faalde -> 400");
         res.status(400).json({ error: result.errors.join(" ") });
         return;
       }
-      // FIX: deze pre-fetch had eerder geen enkele foutafhandeling — noch
-      // try/catch, noch een check op het teruggegeven error-veld. Als
-      // deze specifieke aanroep faalde, crashte de hele PUT ongevangen.
-      // Nu dezelfde bescherming als de schema-fetch hierboven.
       let existing;
       try {
         const existingResult = await supabase.from("customers").select("custom_fields").eq("id", id).eq("organization_id", organizationId).maybeSingle();
+        console.log("[DEBUG PUT /api/customers] pre-fetch resultaat:", JSON.stringify({ data: existingResult.data, error: existingResult.error }));
         if (existingResult.error) throw existingResult.error;
         existing = existingResult.data;
       } catch (fetchError) {
+        console.log("[DEBUG PUT /api/customers] STOP: pre-fetch faalde:", fetchError?.message || fetchError);
         console.error("PUT /api/customers — kon bestaande custom_fields niet ophalen:", fetchError);
         res.status(500).json({ error: "Bijwerken mislukt: kon bestaande gegevens niet ophalen." });
         return;
@@ -135,20 +148,23 @@ export default async function handler(req, res) {
     }
 
     updates.updated_at = new Date().toISOString();
+    console.log("[DEBUG PUT /api/customers] uiteindelijke updates-object:", JSON.stringify(updates));
+    console.log("[DEBUG PUT /api/customers] WHERE-voorwaarden: id =", id, "AND organization_id =", organizationId);
 
-    // KRITIEK, ongewijzigd overgenomen: expliciete dubbele organization_id-
-    // check op de klant-RIJ zelf, niet alleen RLS — dit is wat een ID van
-    // een andere organisatie tegenhoudt, ongeacht of iemand het raadt.
     const { data, error } = await supabase.from("customers").update(updates).eq("id", id).eq("organization_id", organizationId).select().maybeSingle();
+    console.log("[DEBUG PUT /api/customers] Supabase UPDATE-resultaat — data:", JSON.stringify(data), "| error:", JSON.stringify(error));
     if (error) {
+      console.log("[DEBUG PUT /api/customers] STOP: update-error -> 500");
       console.error("PUT /api/customers error:", error);
       res.status(500).json({ error: "Bijwerken mislukt." });
       return;
     }
     if (!data) {
+      console.log("[DEBUG PUT /api/customers] STOP: geen data terug (0 rijen geraakt of RLS/scoping blokkeert) -> 404");
       res.status(404).json({ error: "Klant niet gevonden." });
       return;
     }
+    console.log("[DEBUG PUT /api/customers] SUCCES -> 200");
     res.status(200).json(data);
     return;
   }
