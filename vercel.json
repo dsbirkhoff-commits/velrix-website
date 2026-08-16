@@ -1,4 +1,8 @@
 {
+  "functions": {
+    "api/customers/[id].js": {},
+    "api/services/[id].js": {}
+  },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
