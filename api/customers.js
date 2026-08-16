@@ -1,3 +1,23 @@
+/**
+ * GET    /api/customers               -> lijst
+ * POST   /api/customers                -> aanmaken
+ * PUT    /api/customers?id=<id>        -> bijwerken
+ * DELETE /api/customers?id=<id>        -> verwijderen
+ *
+ * PUT/DELETE gebruiken bewust een query-parameter (?id=) in plaats van
+ * een dynamisch /api/customers/[id]-bestand. Reden (zie chat): drie
+ * opeenvolgende, op documentatie gebaseerde vercel.json-aanpassingen
+ * losten een aanhoudende HTTP 405 op de dynamische bracket-route niet
+ * op (één brak zelfs de build). In plaats van nogmaals te gokken op hoe
+ * Vercel dynamische bestanden registreert, draait alles nu via dit ene,
+ * al bewezen werkende platte bestand — hetzelfde bestand dat GET/POST
+ * altijd al correct heeft afgehandeld.
+ *
+ * De PUT/DELETE-logica hieronder is woordelijk overgenomen uit het
+ * voormalige api/customers/[id].js — inclusief de kritieke, expliciete
+ * dubbele organization_id-check op elke query. Dat bestand bestaat niet
+ * meer; alle klant-item-acties lopen voortaan via dit bestand.
+ */
 import { getServiceClient } from "./_supabase.js";
 import { resolveOrgFromRequest, requireOrg } from "./_orgAuth.js";
 import { getSchemaForOrg, validateCustomFields } from "./_customFields.js";
@@ -63,6 +83,80 @@ export default async function handler(req, res) {
       return;
     }
     res.status(201).json(data);
+    return;
+  }
+
+  if (req.method === "PUT") {
+    const { id } = req.query || {};
+    if (!id) {
+      res.status(400).json({ error: "Ontbrekend id." });
+      return;
+    }
+    const body = req.body || {};
+    const updates = {};
+    if (body.voornaam !== undefined) updates.voornaam = body.voornaam;
+    if (body.achternaam !== undefined) updates.achternaam = body.achternaam;
+    if (body.voornaam !== undefined || body.achternaam !== undefined) {
+      updates.naam = `${body.voornaam || ""} ${body.achternaam || ""}`.trim();
+    }
+    if (body.email !== undefined) updates.email = body.email;
+    if (body.telefoonnummer !== undefined) updates.telefoonnummer = body.telefoonnummer;
+    if (body.notities !== undefined) updates.notities = body.notities;
+    if (body.status !== undefined) updates.status = body.status;
+
+    if (body.custom_fields !== undefined) {
+      let schema;
+      try {
+        schema = await getSchemaForOrg(supabase, organizationId);
+      } catch {
+        res.status(500).json({ error: "Kon schema niet controleren." });
+        return;
+      }
+      const result = validateCustomFields(body.custom_fields, schema);
+      if (!result.valid) {
+        res.status(400).json({ error: result.errors.join(" ") });
+        return;
+      }
+      const { data: existing } = await supabase.from("customers").select("custom_fields").eq("id", id).eq("organization_id", organizationId).maybeSingle();
+      updates.custom_fields = { ...(existing?.custom_fields || {}), ...result.cleaned };
+    }
+
+    updates.updated_at = new Date().toISOString();
+
+    // KRITIEK, ongewijzigd overgenomen: expliciete dubbele organization_id-
+    // check op de klant-RIJ zelf, niet alleen RLS — dit is wat een ID van
+    // een andere organisatie tegenhoudt, ongeacht of iemand het raadt.
+    const { data, error } = await supabase.from("customers").update(updates).eq("id", id).eq("organization_id", organizationId).select().maybeSingle();
+    if (error) {
+      console.error("PUT /api/customers error:", error);
+      res.status(500).json({ error: "Bijwerken mislukt." });
+      return;
+    }
+    if (!data) {
+      res.status(404).json({ error: "Klant niet gevonden." });
+      return;
+    }
+    res.status(200).json(data);
+    return;
+  }
+
+  if (req.method === "DELETE") {
+    const { id } = req.query || {};
+    if (!id) {
+      res.status(400).json({ error: "Ontbrekend id." });
+      return;
+    }
+    const { error, count } = await supabase.from("customers").delete({ count: "exact" }).eq("id", id).eq("organization_id", organizationId);
+    if (error) {
+      console.error("DELETE /api/customers error:", error);
+      res.status(500).json({ error: "Verwijderen mislukt." });
+      return;
+    }
+    if (!count) {
+      res.status(404).json({ error: "Klant niet gevonden." });
+      return;
+    }
+    res.status(200).json({ success: true });
     return;
   }
 

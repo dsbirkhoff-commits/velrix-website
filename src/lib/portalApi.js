@@ -39,13 +39,13 @@ export const portalApi = {
 
   listServices: () => request("/api/services"),
   createService: (body) => request("/api/services", { method: "POST", body: JSON.stringify(body) }),
-  updateService: (id, body) => request(`/api/services/${id}`, { method: "PUT", body: JSON.stringify(body) }),
-  deleteService: (id) => request(`/api/services/${id}`, { method: "DELETE" }),
+  updateService: (id, body) => request(`/api/services?id=${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteService: (id) => request(`/api/services?id=${encodeURIComponent(id)}`, { method: "DELETE" }),
 
   listCustomers: () => request("/api/customers"),
   createCustomer: (body) => request("/api/customers", { method: "POST", body: JSON.stringify(body) }),
-  updateCustomer: (id, body) => request(`/api/customers/${id}`, { method: "PUT", body: JSON.stringify(body) }),
-  deleteCustomer: (id) => request(`/api/customers/${id}`, { method: "DELETE" }),
+  updateCustomer: (id, body) => request(`/api/customers?id=${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteCustomer: (id) => request(`/api/customers?id=${encodeURIComponent(id)}`, { method: "DELETE" }),
 
   getCustomFieldsSchema: () => request("/api/custom-fields-schema"),
 };

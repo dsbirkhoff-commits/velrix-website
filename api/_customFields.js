@@ -1,7 +1,8 @@
 /**
  * Server-side only. Shared logic for validating customer custom_fields
  * against an organization's own custom_field_definitions schema — used
- * by both api/customers.js and api/customers/[id].js so the validation
+ * by both api/customers.js (which also handles PUT/DELETE via a query
+ * parameter, see that file) so the validation
  * rule is defined exactly once, not duplicated (and potentially
  * forgotten) per endpoint.
  *
