@@ -295,9 +295,9 @@ function Services() {
 /* ---------- Process ---------- */
 function ProcessTimeline() {
   const steps = [
-    { icon: Search, title: "Analyse", desc: "We brengen uw telefoonverkeer, drukte en werkplaatsplanning in kaart." },
+    { icon: Search, title: "Analyse", desc: "We brengen uw telefoonverkeer, drukte en planning in kaart." },
     { icon: Hammer, title: "Bouw", desc: "We bouwen de receptionist en koppelen uw agenda en systemen." },
-    { icon: FlaskConical, title: "Test", desc: "Testen met echte belscenario's — APK, onderhoud, offerte." },
+    { icon: FlaskConical, title: "Test", desc: "Testen met echte belscenario's — prijzen, beschikbaarheid, offertes." },
     { icon: Rocket, title: "Live", desc: "Rustige livegang, met begeleiding in de eerste weken." },
   ];
   const trackRef = useRef(null);
