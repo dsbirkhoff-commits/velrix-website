@@ -37,7 +37,7 @@ export default function SiteFooter() {
         <div className="footer-newsletter glass-card" style={{ flexDirection: "column", alignItems: "flex-start", gap: 14 }}>
           <div>
             <h3 className="guarantee-title">Klaar om klantcontact te automatiseren?</h3>
-            <p className="guarantee-desc mt-1">Ontdek in 30 minuten wat VELRIX voor jouw garage kan automatiseren.</p>
+            <p className="guarantee-desc mt-1">Ontdek in 30 minuten wat VELRIX voor jouw bedrijf kan automatiseren.</p>
           </div>
           <button onClick={openBooking} className="btn-gold" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             Plan een gratis gesprek <ArrowRight size={16} />
@@ -65,7 +65,7 @@ export default function SiteFooter() {
               <li><a href="/#diensten" onClick={goToSection("#diensten")}>Digitale receptionist</a></li>
               <li><a href="/#diensten" onClick={goToSection("#diensten")}>24/7 klantenservice</a></li>
               <li><a href="/#diensten" onClick={goToSection("#diensten")}>Werkplaats automatisering</a></li>
-              <li><a href="/#diensten" onClick={goToSection("#diensten")}>Garage-website</a></li>
+              <li><a href="/#diensten" onClick={goToSection("#diensten")}>Bedrijfswebsite</a></li>
             </ul>
           </div>
           <div>

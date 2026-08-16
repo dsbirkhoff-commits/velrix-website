@@ -174,7 +174,7 @@ function Hero() {
         <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-16 items-center">
           <div>
             <Reveal>
-              <div className="eyebrow mb-7"><Sparkles size={13} /> AI-receptionist voor autogarages</div>
+              <div className="eyebrow mb-7"><Sparkles size={13} /> AI-receptionist voor dienstverlenende bedrijven</div>
             </Reveal>
             <Reveal delay={80}>
               <h1 className="hero-title">
@@ -275,15 +275,15 @@ function ServiceCard({ service, index }) {
 
 function Services() {
   const services = [
-    { icon: PhoneCall, title: "Digitale receptionist", desc: "VELRIX neemt telefoontjes op, beantwoordt vragen over APK en onderhoud, en plant afspraken direct in uw agenda — ook buiten werktijd.", points: ["Neemt op binnen enkele seconden", "Plant afspraken automatisch in", "Spreekt vloeiend Nederlands"] },
-    { icon: MessageSquare, title: "24/7 klantenservice", desc: "Een chatbot op uw website die vragen over prijzen, openingstijden en beschikbaarheid beantwoordt — dag en nacht, in uw eigen toon.", points: ["Getraind op uw eigen garage", "Naadloze overdracht naar de werkplaats", "Legt aanvragen automatisch vast"] },
-    { icon: Workflow, title: "Werkplaats automatisering", desc: "Wij koppelen uw agenda, facturatie en onderdelenbeheer zodat terugkerend werk zichzelf afhandelt.", points: ["Koppelt uw bestaande garagesoftware", "Minder handmatige administratie", "Volledig op maat gebouwd"] },
-    { icon: Globe, title: "Garage-website", desc: "Een snelle website waar klanten eenvoudig een offerte aanvragen, een afspraak boeken of uw occasions bekijken.", points: ["Offerte- en afsprakenformulier ingebouwd", "Razendsnel en SEO-solide", "Zelf content bijwerken met AI"] },
+    { icon: PhoneCall, title: "Digitale receptionist", desc: "VELRIX neemt telefoontjes op, beantwoordt vragen over prijzen en beschikbaarheid, en plant afspraken direct in uw agenda — ook buiten werktijd.", points: ["Neemt op binnen enkele seconden", "Plant afspraken automatisch in", "Spreekt vloeiend Nederlands"] },
+    { icon: MessageSquare, title: "24/7 klantenservice", desc: "Een chatbot op uw website die vragen over prijzen, openingstijden en beschikbaarheid beantwoordt — dag en nacht, in uw eigen toon.", points: ["Getraind op uw eigen bedrijf", "Naadloze overdracht naar uw team", "Legt aanvragen automatisch vast"] },
+    { icon: Workflow, title: "Bedrijfsprocessen automatisering", desc: "Wij koppelen uw agenda, facturatie en administratie zodat terugkerend werk zichzelf afhandelt.", points: ["Koppelt uw bestaande bedrijfssoftware", "Minder handmatige administratie", "Volledig op maat gebouwd"] },
+    { icon: Globe, title: "Bedrijfswebsite", desc: "Een snelle website waar klanten eenvoudig een offerte aanvragen, een afspraak boeken of uw diensten bekijken.", points: ["Offerte- en afsprakenformulier ingebouwd", "Razendsnel en SEO-solide", "Zelf content bijwerken met AI"] },
   ];
   return (
     <section id="diensten" className="section section-alt">
       <div className="max-w-7xl mx-auto px-6 lg:px-10">
-        <SectionHeading eyebrow="Diensten" title="Vier manieren om AI voor uw garage te laten werken" sub="Los toepasbaar of samen als één systeem." />
+        <SectionHeading eyebrow="Diensten" title="Vier manieren om AI voor uw bedrijf te laten werken" sub="Los toepasbaar of samen als één systeem." />
         <div className="grid md:grid-cols-2 gap-5 mt-14">
           {services.map((s, i) => (<ServiceCard service={s} index={i} key={s.title} />))}
         </div>
@@ -338,7 +338,7 @@ function WhyUs() {
     { label: "Implementatie", them: "Losse projecten, weinig samenhang", us: "Eén doorlopend systeem" },
     { label: "Techniek", them: "Vaste sjablonen", us: "Nieuwste AI-modellen, continu bijgewerkt" },
     { label: "Aanspreekpunt", them: "Wisselt per project", us: "Eén vast aanspreekpunt" },
-    { label: "Toon & taal", them: "Generieke scripts", us: "Getraind op uw eigen garage" },
+    { label: "Toon & taal", them: "Generieke scripts", us: "Getraind op uw eigen bedrijf" },
     { label: "Contractvorm", them: "Langlopend contract", us: "Maandelijks opzegbaar" },
   ];
   return (
@@ -348,10 +348,10 @@ function WhyUs() {
           <Reveal>
             <div>
               <span className="eyebrow-mono">Waarom wij</span>
-              <h2 className="section-title mt-4">De AI-afdeling die de meeste garages niet kunnen aannemen.</h2>
+              <h2 className="section-title mt-4">De AI-afdeling die de meeste bedrijven niet kunnen aannemen.</h2>
               <p className="section-sub mt-5">
                 VELRIX is opgericht vanuit een simpele observatie: grote AI-doorbraken landen bij techbedrijven,
-                terwijl de garage om de hoek er weinig van merkt. Wij vertalen dezelfde technologie naar iets
+                terwijl de meeste ondernemers er weinig van merken. Wij vertalen dezelfde technologie naar iets
                 dat op een doordeweekse dinsdag daadwerkelijk werkt.
               </p>
             </div>
@@ -381,7 +381,7 @@ function WhyUs() {
 function Guarantees() {
   const items = [
     { title: "Nederlandstalige support", desc: "Altijd in gewone taal, geen technisch jargon." },
-    { title: "Persoonlijke implementatie", desc: "Geen kant-en-klaar sjabloon — gebouwd op uw garage." },
+    { title: "Persoonlijke implementatie", desc: "Geen kant-en-klaar sjabloon — gebouwd op uw bedrijf." },
     { title: "Maandelijks opzegbaar", desc: "Geen lange contracten of verborgen voorwaarden." },
     { title: "Volledige controle", desc: "U bepaalt wat de AI wel en niet mag zeggen." },
   ];
@@ -415,7 +415,7 @@ function CaseStudy() {
             <span className="case-badge">Binnenkort</span>
             <h2 className="section-title">Eerste klantcase volgt binnenkort.</h2>
             <p className="section-sub mt-4 mx-auto" style={{ maxWidth: "48ch" }}>
-              VELRIX werkt op dit moment aan de eerste implementaties bij autogarages. Zodra de eerste
+              VELRIX werkt op dit moment aan de eerste implementaties bij ondernemers in verschillende branches. Zodra de eerste
               resultaten binnen zijn, delen we die hier — met echte cijfers, geen voorbeelden.
             </p>
             <a href="#contact" className="btn-ghost mt-6">Wees een van de eersten<ArrowRight size={16} /></a>
@@ -440,12 +440,12 @@ function ScanSection() {
   return (
     <section id="scan" className="section">
       <div className="max-w-3xl mx-auto px-6 lg:px-10 text-center">
-        <SectionHeading eyebrow="Gratis AI-scan" title="Ontdek binnen 60 seconden hoeveel tijd uw garage kan besparen." align="center" />
+        <SectionHeading eyebrow="Gratis AI-scan" title="Ontdek binnen 60 seconden hoeveel tijd uw bedrijf kan besparen." align="center" />
         <Reveal delay={100}>
           <form onSubmit={submit} className="scan-form">
             <input
               className="scan-input"
-              placeholder="www.uwgarage.nl"
+              placeholder="www.uwbedrijf.nl"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               aria-label="Website URL"
@@ -459,7 +459,7 @@ function ScanSection() {
         {state === "done" && (
           <Reveal>
             <div className="scan-result">
-              <span className="scan-result-label">Voorbeeldresultaat — garagevoorbeeld.nl</span>
+              <span className="scan-result-label">Voorbeeldresultaat — bedrijfsvoorbeeld.nl</span>
               <div className="scan-grid">
                 {missing.map((m) => (<span className="scan-miss" key={m}><X size={13} /> {m}</span>))}
               </div>
@@ -496,14 +496,14 @@ function DemoTeaser() {
 /* ---------- Pricing ---------- */
 function Pricing() {
   const tiers = [
-    { name: "Starter", price: "Website + Chatbot", features: ["Garage-website op maat", "24/7 chatbot voor klantvragen", "Offerteformulier ingebouwd", "Persoonlijke onboarding"], highlighted: false, cta: "Start met Starter" },
+    { name: "Starter", price: "Website + Chatbot", features: ["Bedrijfswebsite op maat", "24/7 chatbot voor klantvragen", "Offerteformulier ingebouwd", "Persoonlijke onboarding"], highlighted: false, cta: "Start met Starter" },
     { name: "Groei", price: "Website + Chatbot + AI Receptionist", features: ["Alles uit Starter", "Digitale receptionist voor telefoontjes", "Automatische agendakoppeling", "WhatsApp- en e-mailbevestigingen", "Maandelijkse optimalisatie"], highlighted: true, cta: "Kies voor Groei" },
-    { name: "Pro", price: "Volledig AI-systeem", features: ["Alles uit Groei", "Koppeling met garagesoftware & facturatie", "Automatisering werkplaatsplanning", "Dedicated implementatieteam"], highlighted: false, cta: "Vraag offerte aan" },
+    { name: "Pro", price: "Volledig AI-systeem", features: ["Alles uit Groei", "Koppeling met bedrijfssoftware & facturatie", "Automatisering planning", "Dedicated implementatieteam"], highlighted: false, cta: "Vraag offerte aan" },
   ];
   return (
     <section id="prijzen" className="section">
       <div className="max-w-7xl mx-auto px-6 lg:px-10">
-        <SectionHeading eyebrow="Prijzen — testfase" title="Een startaanbod, bewust laag gehouden" sub="€995 implementatie + €199 per maand voor het testpakket. Geen bewezen marktprijs — we testen dit nu met de eerste garages." align="center" />
+        <SectionHeading eyebrow="Prijzen — testfase" title="Een startaanbod, bewust laag gehouden" sub="€995 implementatie + €199 per maand voor het testpakket. Geen bewezen marktprijs — we testen dit nu met de eerste klanten." align="center" />
         <div className="grid lg:grid-cols-3 gap-6 mt-14 items-center">
           {tiers.map((t, i) => (
             <Reveal delay={i * 100} key={t.name}>
@@ -541,8 +541,8 @@ function FAQItem({ q, a, isOpen, onToggle, id }) {
 
 function FAQ() {
   const items = [
-    { q: "Kan de receptionist ook offertes geven voor onderhoud?", a: "Ja, binnen de grenzen die u instelt. Voor complexere prijsvragen draagt de AI het gesprek over aan een medewerker." },
-    { q: "Werkt dit samen met onze bestaande garagesoftware?", a: "In de meeste gevallen wel. We koppelen met veelgebruikte agenda's en planningssystemen." },
+    { q: "Kan de receptionist ook offertes geven voor mijn diensten?", a: "Ja, binnen de grenzen die u instelt. Voor complexere prijsvragen draagt de AI het gesprek over aan een medewerker." },
+    { q: "Werkt dit samen met onze bestaande bedrijfssoftware?", a: "In de meeste gevallen wel. We koppelen met veelgebruikte agenda's en planningssystemen." },
     { q: "Hoe snel kan de AI-receptionist live staan?", a: "Meestal binnen twee tot drie weken, afhankelijk van de koppelingen die nodig zijn." },
     { q: "Kan de AI Nederlands spreken?", a: "Ja, gewoon vloeiend Nederlands." },
     { q: "Zit ik vast aan een lang contract?", a: "Nee. Na de opstartperiode werken we maandelijks opzegbaar." },

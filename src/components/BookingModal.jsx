@@ -312,7 +312,7 @@ export default function BookingModal({ onClose }) {
               </div>
               <div className="bk-field">
                 <label className="bk-label" htmlFor="bk-email">E-mailadres<span>*</span></label>
-                <input id="bk-email" type="email" className="bk-input" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="naam@garage.nl" />
+                <input id="bk-email" type="email" className="bk-input" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="naam@bedrijf.nl" />
               </div>
               <div className="bk-footer">
                 <button className="bk-back" onClick={() => setStepIndex(1)}><ChevronLeft size={15} /> Terug</button>

@@ -47,7 +47,7 @@ export default function Terms() {
           <Art n={1} title="Definities">
             <ul>
               <li><strong>VELRIX:</strong> handelsnaam van <span className="legal-placeholder">[STATUTAIRE NAAM]</span>, ingeschreven bij de Kamer van Koophandel onder nummer <span className="legal-placeholder">[KVK-NUMMER]</span>, kantoorhoudende aan <span className="legal-placeholder">[BEZOEKADRES]</span> (postadres: <span className="legal-placeholder">[POSTADRES]</span>).</li>
-              <li><strong>Klant:</strong> de natuurlijke of rechtspersoon die met VELRIX een overeenkomst aangaat, doorgaans een onderneming (bijvoorbeeld een autogarage).</li>
+              <li><strong>Klant:</strong> de natuurlijke of rechtspersoon die met VELRIX een overeenkomst aangaat, doorgaans een onderneming (bijvoorbeeld een dienstverlenend bedrijf).</li>
               <li><strong>Diensten:</strong> alle door VELRIX geleverde producten en diensten, waaronder AI-software, AI-receptionist, AI-automatisering, websites, implementatie, onderhoud en aanverwante werkzaamheden.</li>
               <li><strong>Overeenkomst:</strong> elke afspraak tussen VELRIX en Klant over de levering van Diensten, inclusief offertes, orderbevestigingen en deze algemene voorwaarden.</li>
             </ul>
