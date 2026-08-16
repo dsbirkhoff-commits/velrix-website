@@ -117,7 +117,20 @@ export default async function handler(req, res) {
         res.status(400).json({ error: result.errors.join(" ") });
         return;
       }
-      const { data: existing } = await supabase.from("customers").select("custom_fields").eq("id", id).eq("organization_id", organizationId).maybeSingle();
+      // FIX: deze pre-fetch had eerder geen enkele foutafhandeling — noch
+      // try/catch, noch een check op het teruggegeven error-veld. Als
+      // deze specifieke aanroep faalde, crashte de hele PUT ongevangen.
+      // Nu dezelfde bescherming als de schema-fetch hierboven.
+      let existing;
+      try {
+        const existingResult = await supabase.from("customers").select("custom_fields").eq("id", id).eq("organization_id", organizationId).maybeSingle();
+        if (existingResult.error) throw existingResult.error;
+        existing = existingResult.data;
+      } catch (fetchError) {
+        console.error("PUT /api/customers — kon bestaande custom_fields niet ophalen:", fetchError);
+        res.status(500).json({ error: "Bijwerken mislukt: kon bestaande gegevens niet ophalen." });
+        return;
+      }
       updates.custom_fields = { ...(existing?.custom_fields || {}), ...result.cleaned };
     }
 
