@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
         // this simply returns null, which the UI handles gracefully.
         supabase
           .from("memberships")
-          .select("organization_id, role, organizations ( id, name )")
+          .select("organization_id, role, organizations ( id, name, status )")
           .eq("user_id", session.user.id)
           .order("created_at", { ascending: true }) // deterministic: oudste lidmaatschap eerst, i.p.v. willekeurige databasevolgorde als iemand ooit bij meerdere organisaties hoort
           .limit(1)

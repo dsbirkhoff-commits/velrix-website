@@ -30,6 +30,26 @@ const Services = lazy(() => import("./pages/portal/Services.jsx"));
 const AppointmentSettings = lazy(() => import("./pages/portal/settings/AppointmentSettings.jsx"));
 const Invoices = lazy(() => import("./pages/portal/Invoices.jsx"));
 
+// Admin Backend — eigen, aparte lazy chunk. Deelt AuthProvider met de
+// portal (dezelfde sessie/profiel-context), maar heeft een eigen layout
+// en een eigen route-guard (RequireVelrixAdmin) bovenop RequireAuth.
+const RequireVelrixAdmin = lazy(() => import("./components/RequireVelrixAdmin.jsx"));
+const AdminLayout = lazy(() => import("./components/AdminLayout.jsx"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.jsx"));
+const AdminOrganizations = lazy(() => import("./pages/admin/AdminOrganizations.jsx"));
+const AdminOrganizationNew = lazy(() => import("./pages/admin/AdminOrganizationNew.jsx"));
+const AdminOrganizationDetail = lazy(() => import("./pages/admin/AdminOrganizationDetail.jsx"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers.jsx"));
+const AdminBranches = lazy(() => import("./pages/admin/AdminBranches.jsx"));
+const AdminTemplates = lazy(() => import("./pages/admin/AdminTemplates.jsx"));
+const AdminCustomers = lazy(() => import("./pages/admin/AdminCustomers.jsx"));
+const AdminAppointments = lazy(() => import("./pages/admin/AdminAppointments.jsx"));
+const AdminServices = lazy(() => import("./pages/admin/AdminServices.jsx"));
+const AdminAiReceptionists = lazy(() => import("./pages/admin/AdminAiReceptionists.jsx"));
+const AdminInvoices = lazy(() => import("./pages/admin/AdminInvoices.jsx"));
+const AdminSubscriptions = lazy(() => import("./pages/admin/AdminSubscriptions.jsx"));
+const AdminSystem = lazy(() => import("./pages/admin/AdminSystem.jsx"));
+
 function PortalFallback() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0b0d" }}>
@@ -58,6 +78,25 @@ function ProtectedPortalLayout() {
       <Suspense fallback={<PortalFallback />}>
         <RequireAuth>
           <DashboardLayout />
+        </RequireAuth>
+      </Suspense>
+    </PortalRoot>
+  );
+}
+
+/** Zelfde patroon, met een extra RequireVelrixAdmin-laag bovenop
+ * RequireAuth — geen enkele bestaande /portal/*-route wordt hierdoor
+ * geraakt, dit is een volledig aparte boom. */
+function ProtectedAdminLayout() {
+  return (
+    <PortalRoot>
+      <Suspense fallback={<PortalFallback />}>
+        <RequireAuth>
+          <Suspense fallback={<PortalFallback />}>
+            <RequireVelrixAdmin>
+              <AdminLayout />
+            </RequireVelrixAdmin>
+          </Suspense>
         </RequireAuth>
       </Suspense>
     </PortalRoot>
@@ -107,6 +146,24 @@ export default function App() {
             <Route path="/portal/settings/appointments" element={<Suspense fallback={<PortalFallback />}><AppointmentSettings /></Suspense>} />
             <Route path="/portal/services" element={<Suspense fallback={<PortalFallback />}><Services /></Suspense>} />
             <Route path="/portal/invoices" element={<Suspense fallback={<PortalFallback />}><Invoices /></Suspense>} />
+          </Route>
+
+          {/* VELRIX Admin Backend — uitsluitend voor VELRIX-admins, zie RequireVelrixAdmin */}
+          <Route element={<ProtectedAdminLayout />}>
+            <Route path="/admin" element={<Suspense fallback={<PortalFallback />}><AdminDashboard /></Suspense>} />
+            <Route path="/admin/organizations" element={<Suspense fallback={<PortalFallback />}><AdminOrganizations /></Suspense>} />
+            <Route path="/admin/organizations/new" element={<Suspense fallback={<PortalFallback />}><AdminOrganizationNew /></Suspense>} />
+            <Route path="/admin/organizations/:id" element={<Suspense fallback={<PortalFallback />}><AdminOrganizationDetail /></Suspense>} />
+            <Route path="/admin/users" element={<Suspense fallback={<PortalFallback />}><AdminUsers /></Suspense>} />
+            <Route path="/admin/branches" element={<Suspense fallback={<PortalFallback />}><AdminBranches /></Suspense>} />
+            <Route path="/admin/custom-field-templates" element={<Suspense fallback={<PortalFallback />}><AdminTemplates /></Suspense>} />
+            <Route path="/admin/customers" element={<Suspense fallback={<PortalFallback />}><AdminCustomers /></Suspense>} />
+            <Route path="/admin/appointments" element={<Suspense fallback={<PortalFallback />}><AdminAppointments /></Suspense>} />
+            <Route path="/admin/services" element={<Suspense fallback={<PortalFallback />}><AdminServices /></Suspense>} />
+            <Route path="/admin/ai-receptionists" element={<Suspense fallback={<PortalFallback />}><AdminAiReceptionists /></Suspense>} />
+            <Route path="/admin/invoices" element={<Suspense fallback={<PortalFallback />}><AdminInvoices /></Suspense>} />
+            <Route path="/admin/subscriptions" element={<Suspense fallback={<PortalFallback />}><AdminSubscriptions /></Suspense>} />
+            <Route path="/admin/system" element={<Suspense fallback={<PortalFallback />}><AdminSystem /></Suspense>} />
           </Route>
 
           <Route path="*" element={<Home />} />

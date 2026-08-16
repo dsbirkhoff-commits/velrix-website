@@ -53,6 +53,37 @@ export default function DashboardLayout() {
     );
   }
 
+  // Status-gate (Admin Backend, organizations.status): een VELRIX-admin
+  // zonder eigen membership omzeilt dit bewust (isVelrixAdmin === true
+  // hierboven al doorgelaten) — deze gate is uitsluitend voor gewone
+  // organisatiegebruikers. Bestaande organisaties zoals VELRIX Demo
+  // Garage hebben via de migratie automatisch status='actief' gekregen,
+  // dus die blijven hier ongemoeid doorlopen naar de normale portal.
+  const orgStatus = membership?.organizations?.status;
+  if (orgStatus && orgStatus !== "actief") {
+    const message =
+      orgStatus === "concept"
+        ? "Je account is nog niet geactiveerd. Neem contact op met VELRIX."
+        : "Je account is tijdelijk gepauzeerd. Neem contact op met VELRIX.";
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0b0d", padding: 20 }}>
+        <div style={{ maxWidth: 420, textAlign: "center", color: "#f3f1ec", fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
+          <AlertTriangle size={26} style={{ color: "#e6947a", marginBottom: 14 }} />
+          <h1 style={{ fontFamily: "Georgia, serif", fontSize: 19, fontWeight: 500, marginBottom: 8 }}>
+            {orgStatus === "concept" ? "Nog niet geactiveerd" : "Tijdelijk gepauzeerd"}
+          </h1>
+          <p style={{ fontSize: 13.5, color: "#9a9c9f", lineHeight: 1.6 }}>{message}</p>
+          <button
+            onClick={signOut}
+            style={{ marginTop: 20, display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, border: "1px solid #34383f", background: "none", color: "#f3f1ec", cursor: "pointer", fontSize: 13 }}
+          >
+            <LogOut size={14} /> Uitloggen
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="dash-shell">
       <style>{`
