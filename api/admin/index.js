@@ -364,7 +364,15 @@ async function handleTemplates(req, res, supabase, auth) {
     const { id, industry_id } = req.query || {};
     if (id) {
       const [{ data: template, error }, { data: fields }] = await Promise.all([
-        supabase.from("custom_field_templates").select("*, industries(name, slug)").eq("id", id).maybeSingle(),
+        // GEEN "industries(name, slug)"-embed hier — sinds migratie 0008
+        // bestaan er TWEE foreign keys tussen custom_field_templates en
+        // industries (het bestaande industry_id, én het nieuwe,
+        // omgekeerde industries.template_id), wat PostgREST's embed
+        // ambigu maakt (PGRST201). Levert sowieso nooit bruikbare data
+        // op: alle 10 templates hebben industry_id = null (bewust — de
+        // nieuwe standaardtemplate-relatie loopt via
+        // industries.template_id, niet andersom).
+        supabase.from("custom_field_templates").select("*").eq("id", id).maybeSingle(),
         supabase.from("custom_field_template_fields").select("*").eq("template_id", id).order("sort_order", { ascending: true }),
       ]);
       if (error) { res.status(500).json({ error: "Kon template niet ophalen." }); return; }
@@ -372,7 +380,10 @@ async function handleTemplates(req, res, supabase, auth) {
       res.status(200).json({ ...template, fields: fields || [] });
       return;
     }
-    let query = supabase.from("custom_field_templates").select("*, industries(name, slug)").order("created_at", { ascending: false });
+    // Zelfde reden als hierboven bij de detail-fetch: geen embed, om de
+    // PGRST201-ambiguïteit (twee FK's tussen deze twee tabellen sinds
+    // migratie 0008) te vermijden.
+    let query = supabase.from("custom_field_templates").select("*").order("created_at", { ascending: false });
     if (industry_id) query = query.eq("industry_id", industry_id);
     const { data, error } = await query;
     if (error) { res.status(500).json({ error: "Kon templates niet ophalen." }); return; }
