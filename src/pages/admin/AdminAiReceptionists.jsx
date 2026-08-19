@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { adminApi } from "../../lib/adminApi.js";
 import DashboardPageStyles from "../../components/DashboardPageStyles.jsx";
+import DarkSelect from "../../components/DarkSelect.jsx";
 
 export default function AdminAiReceptionists() {
   const [searchParams] = useSearchParams();
@@ -25,10 +26,12 @@ export default function AdminAiReceptionists() {
       <div className="dp-header"><h1 className="dp-title">AI Receptionists</h1><p className="dp-sub">Cross-organisatie leesoverzicht — kies eerst een organisatie.</p></div>
       <div className="dp-card" style={{ marginBottom: 16 }}>
         <label className="dp-label">Organisatie</label>
-        <select className="dp-select" value={orgId} onChange={(e) => setOrgId(e.target.value)}>
-          <option value="">— Kies een organisatie —</option>
-          {organizations.map((o) => (<option key={o.id} value={o.id}>{o.name}</option>))}
-        </select>
+        <DarkSelect
+          value={orgId}
+          onChange={setOrgId}
+          options={organizations.map((o) => ({ value: o.id, label: o.name }))}
+          placeholder="— Kies een organisatie —"
+        />
       </div>
       {!orgId ? null : (
         <div className="dp-card">

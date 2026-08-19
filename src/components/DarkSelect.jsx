@@ -15,7 +15,7 @@ import { ChevronDown, Check } from "lucide-react";
  * properties, so relying on them here would be fragile. Not fixing that
  * broader gap now â€” out of scope for this one component.
  */
-export default function DarkSelect({ value, onChange, options, placeholder = "â€” Kies â€”" }) {
+export default function DarkSelect({ value, onChange, options, placeholder = "â€” Kies â€”", disabled = false, hideEmptyOption = false }) {
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(-1);
   const rootRef = useRef(null);
@@ -52,6 +52,7 @@ export default function DarkSelect({ value, onChange, options, placeholder = "â€
   };
 
   const onKeyDown = (e) => {
+    if (disabled) return;
     if (!open) {
       if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
         e.preventDefault();
@@ -88,13 +89,16 @@ export default function DarkSelect({ value, onChange, options, placeholder = "â€
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listboxId}
-        onClick={() => setOpen((v) => !v)}
+        aria-disabled={disabled}
+        disabled={disabled}
+        onClick={() => { if (!disabled) setOpen((v) => !v); }}
         onKeyDown={onKeyDown}
         style={{
           width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-          background: "#0e1013", border: `1px solid ${open ? "#c9a668" : "#34383f"}`, borderRadius: 10,
-          padding: "10px 13px", fontSize: 13.5, color: selected ? "#f3f1ec" : "#6b6d71",
-          fontFamily: "inherit", cursor: "pointer", boxSizing: "border-box", textAlign: "left",
+          background: disabled ? "#0a0b0d" : "#0e1013", border: `1px solid ${open ? "#c9a668" : "#34383f"}`, borderRadius: 10,
+          padding: "10px 13px", fontSize: 13.5, color: disabled ? "#454a52" : (selected ? "#f3f1ec" : "#6b6d71"),
+          fontFamily: "inherit", cursor: disabled ? "not-allowed" : "pointer", boxSizing: "border-box", textAlign: "left",
+          opacity: disabled ? 0.6 : 1,
         }}
       >
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -103,7 +107,7 @@ export default function DarkSelect({ value, onChange, options, placeholder = "â€
         <ChevronDown size={15} style={{ color: "#6b6d71", flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
       </button>
 
-      {open && (
+      {open && !disabled && (
         <ul
           ref={listRef}
           id={listboxId}
@@ -123,7 +127,7 @@ export default function DarkSelect({ value, onChange, options, placeholder = "â€
             onMouseEnter={() => setHighlighted(-1)}
             onClick={() => commit("")}
             className={`dsel-option${!value ? " dsel-selected" : ""}${highlighted === -1 ? " dsel-highlighted" : ""}`}
-            style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 10px", borderRadius: 7, fontSize: 13.5, color: "#6b6d71", cursor: "pointer" }}
+            style={hideEmptyOption ? { display: "none" } : { display: "flex", alignItems: "center", gap: 8, padding: "9px 10px", borderRadius: 7, fontSize: 13.5, color: "#6b6d71", cursor: "pointer" }}
           >
             <span style={{ width: 14 }}>{!value && <Check size={13} />}</span>
             {placeholder}

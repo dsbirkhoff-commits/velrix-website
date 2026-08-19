@@ -2,8 +2,17 @@ import React, { useEffect, useState } from "react";
 import { Loader2, Plus, ListTree, X, Trash2 } from "lucide-react";
 import { adminApi } from "../../lib/adminApi.js";
 import DashboardPageStyles from "../../components/DashboardPageStyles.jsx";
+import DarkSelect from "../../components/DarkSelect.jsx";
 
 const EMPTY_FIELD = { field_key: "", label: "", data_type: "text", required: false };
+const DATA_TYPE_OPTIONS = [
+  { value: "text", label: "text" },
+  { value: "number", label: "number" },
+  { value: "boolean", label: "boolean" },
+  { value: "date", label: "date" },
+  { value: "select", label: "select" },
+  { value: "multiselect", label: "multiselect" },
+];
 
 export default function AdminTemplates() {
   const [loading, setLoading] = useState(true);
@@ -66,10 +75,12 @@ export default function AdminTemplates() {
               <div className="dp-field"><label className="dp-label">Templatenaam</label><input className="dp-input" value={name} onChange={(e) => setName(e.target.value)} required /></div>
               <div className="dp-field">
                 <label className="dp-label">Branche</label>
-                <select className="dp-select" value={industryId} onChange={(e) => setIndustryId(e.target.value)}>
-                  <option value="">— Geen —</option>
-                  {industries.map((i) => (<option key={i.id} value={i.id}>{i.name}</option>))}
-                </select>
+                <DarkSelect
+                  value={industryId}
+                  onChange={setIndustryId}
+                  options={industries.map((i) => ({ value: i.id, label: i.name }))}
+                  placeholder="— Geen —"
+                />
               </div>
             </div>
 
@@ -83,10 +94,13 @@ export default function AdminTemplates() {
             <div className="dp-grid dp-cols-4" style={{ marginTop: 8, marginBottom: 4 }}>
               <input className="dp-input" placeholder="field_key" value={newField.field_key} onChange={(e) => setNewField((f) => ({ ...f, field_key: e.target.value }))} />
               <input className="dp-input" placeholder="Label" value={newField.label} onChange={(e) => setNewField((f) => ({ ...f, label: e.target.value }))} />
-              <select className="dp-select" value={newField.data_type} onChange={(e) => setNewField((f) => ({ ...f, data_type: e.target.value }))}>
-                <option value="text">text</option><option value="number">number</option><option value="boolean">boolean</option>
-                <option value="date">date</option><option value="select">select</option><option value="multiselect">multiselect</option>
-              </select>
+              <DarkSelect
+                value={newField.data_type}
+                onChange={(val) => setNewField((f) => ({ ...f, data_type: val }))}
+                options={DATA_TYPE_OPTIONS}
+                placeholder="— Kies —"
+                hideEmptyOption
+              />
               <button type="button" className="dp-btn-ghost" onClick={addField}><Plus size={13} /> Veld</button>
             </div>
 

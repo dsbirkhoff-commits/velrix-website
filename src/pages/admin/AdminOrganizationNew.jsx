@@ -72,10 +72,12 @@ export default function AdminOrganizationNew() {
           {form.industry_id && (
             <div className="dp-field">
               <label className="dp-label">Custom-field template (optioneel)</label>
-              <select className="dp-select" value={form.template_id} onChange={(e) => setForm((f) => ({ ...f, template_id: e.target.value }))}>
-                <option value="">— Geen template —</option>
-                {templates.map((t) => (<option key={t.id} value={t.id}>{t.name}</option>))}
-              </select>
+              <DarkSelect
+                value={form.template_id}
+                onChange={(val) => setForm((f) => ({ ...f, template_id: val }))}
+                options={templates.map((t) => ({ value: t.id, label: t.name }))}
+                placeholder="— Geen template —"
+              />
             </div>
           )}
           <div className="dp-field">
