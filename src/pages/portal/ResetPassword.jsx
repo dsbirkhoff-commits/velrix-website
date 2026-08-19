@@ -6,14 +6,15 @@ import { supabase } from "../../lib/supabaseClient.js";
 /**
  * Handles both flows that land here with a Supabase recovery/invite token
  * in the URL:
- *   1. "Invite user" (Supabase Dashboard -> Authentication -> Users) —
- *      the very first time an account sets its own password.
- *   2. "Forgot password" (self-service, triggered from PortalLogin.jsx) —
- *      any time after that.
- * Supabase's client library automatically detects the token in the URL
- * on page load and establishes a temporary "recovery" session — this
- * page just needs to call updateUser({ password }) while that session is
- * active. No password is ever hardcoded anywhere in this codebase.
+ *   1. "Invite user" (Supabase Dashboard -> Authentication -> Users, of
+ *      via de VELRIX Admin Backend) — de allereerste keer dat een account
+ *      zelf een wachtwoord instelt.
+ *   2. "Forgot password" (self-service, getriggerd vanuit PortalLogin.jsx)
+ *      — elk moment daarna.
+ * Supabase's client library detecteert de token in de URL automatisch bij
+ * het laden en zet een tijdelijke sessie op — deze pagina hoeft alleen
+ * updateUser({ password }) aan te roepen zolang die sessie actief is. Geen
+ * enkel wachtwoord staat ooit hardcoded in deze codebase.
  */
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -25,21 +26,34 @@ export default function ResetPassword() {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    // FIX (zie audit): de oude fallback beschouwde ELKE actieve sessie als
-    // bewijs van een geldige reset-link — dus een al ingelogde gebruiker
-    // die deze URL rechtstreeks bezocht kon meteen een nieuw wachtwoord
-    // zetten, zonder ooit een echte reset-mail te hebben ontvangen. Nu
-    // wordt de fallback alleen vertrouwd als de URL zelf daadwerkelijk een
-    // recovery-token bevat (#...&type=recovery) — de primaire, correcte
-    // detectie blijft de PASSWORD_RECOVERY-gebeurtenis hieronder.
+    // FIX (zie eerdere audit): de fallback beschouwt niet elke actieve
+    // sessie als bewijs van een geldige link — een al ingelogde gebruiker
+    // die deze URL rechtstreeks bezoekt (geen token in de URL) mag hier
+    // niet zomaar een nieuw wachtwoord kunnen zetten. Daarom blijft de
+    // fallback gebonden aan een daadwerkelijk herkend token-type in de
+    // hash (#...&type=recovery OF #...&type=invite — beide tellen mee,
+    // zie hieronder waarom).
     const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    const isRecoveryLink = params.get("type") === "recovery";
+    const linkType = params.get("type");
+    const isTokenLink = linkType === "recovery" || linkType === "invite";
 
+    // FIX (dit incident): "wachtwoord vergeten"-links geven betrouwbaar
+    // het PASSWORD_RECOVERY-event. Een VELRIX-uitnodigingslink (nieuwe
+    // organisatie -> eigenaar uitnodigen) gebruikt echter een ander
+    // Supabase-mechanisme — daarbij is SIGNED_IN het event dat
+    // daadwerkelijk afgaat, niet PASSWORD_RECOVERY (bevestigd door
+    // Supabase zelf: bij invite/recovery-links vuurt SIGNED_IN vóór
+    // PASSWORD_RECOVERY, en voor invites specifiek is dat het enige
+    // betrouwbare signaal). SIGNED_IN reageert alleen op een sessie die
+    // TIJDENS de levensduur van deze listener ontstaat — een reeds
+    // bestaande, van tevoren ingelogde sessie triggert dit niet (die
+    // geeft hooguit INITIAL_SESSION, waar hier bewust niet op wordt
+    // gereageerd), dus de beveiligingsgarantie hierboven blijft intact.
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") setReady(true);
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
     });
 
-    if (isRecoveryLink) {
+    if (isTokenLink) {
       supabase.auth.getSession().then(({ data }) => {
         if (data.session) setReady(true);
       });
