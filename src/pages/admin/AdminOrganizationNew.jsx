@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Loader2, Building2, ArrowRight } from "lucide-react";
 import { adminApi } from "../../lib/adminApi.js";
 import DashboardPageStyles from "../../components/DashboardPageStyles.jsx";
+import DarkSelect from "../../components/DarkSelect.jsx";
 
 export default function AdminOrganizationNew() {
   const navigate = useNavigate();
@@ -61,10 +62,12 @@ export default function AdminOrganizationNew() {
           </div>
           <div className="dp-field">
             <label className="dp-label">Branche (optioneel)</label>
-            <select className="dp-select" value={form.industry_id} onChange={(e) => setForm((f) => ({ ...f, industry_id: e.target.value, template_id: "" }))}>
-              <option value="">— Geen branche —</option>
-              {industries.map((i) => (<option key={i.id} value={i.id}>{i.name}</option>))}
-            </select>
+            <DarkSelect
+              value={form.industry_id}
+              onChange={(val) => setForm((f) => ({ ...f, industry_id: val, template_id: "" }))}
+              options={industries.map((i) => ({ value: i.id, label: i.name }))}
+              placeholder="— Geen branche —"
+            />
           </div>
           {form.industry_id && (
             <div className="dp-field">
