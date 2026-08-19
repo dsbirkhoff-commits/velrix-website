@@ -22,8 +22,20 @@ export default function AdminLayout() {
   const { user, signOut } = useAuth();
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0b0d", color: "#f3f1ec", display: "flex", fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
+    <div className="adm-shell" style={{ minHeight: "100vh", display: "flex", fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
       <style>{`
+        /* Root-cause fix: DashboardPageStyles.jsx (gedeeld door portal én
+           admin) leunt overal op var(--gold)/var(--border)/etc. — deze
+           variabelen werden tot nu toe alleen gedefinieerd in
+           DashboardLayout.jsx's .dash-shell, nooit hier. Gevolg: elke
+           .dp-btn/.dp-badge/rand/gedimde-tekst binnen de Admin Backend
+           faalde stilzwijgend en viel terug op onzichtbare/verkeerde
+           kleuren (bevestigd bij minstens drie knoppen). Zelfde,
+           letterlijke variabelenset als .dash-shell, niet benaderd. */
+        .adm-shell { --ink:#0a0b0d; --ink-2:#0e1013; --surface:#15171b; --border:#24272d; --border-strong:#34383f;
+          --gold:#c9a668; --gold-bright:#e6cd94; --gold-dim:#8a733f; --text:#f3f1ec; --text-muted:#9a9c9f; --text-dim:#6b6d71;
+          --green:#6fd18a; --red:#e6947a;
+          background: var(--ink); color: var(--text); }
         .adm-nav-link { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: 9px; color: #9a9c9f; text-decoration: none; font-size: 13px; font-weight: 500; }
         .adm-nav-link:hover { background: rgba(255,255,255,.03); color: #f3f1ec; }
         .adm-nav-link.active { background: rgba(201,166,104,.1); color: #e6cd94; }
