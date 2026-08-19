@@ -48,6 +48,8 @@ export default function AdminOrgDataViewer({ title, sub, emptyText, fetchFn, col
           onChange={setOrgId}
           options={organizations.map((o) => ({ value: o.id, label: o.name }))}
           placeholder="— Kies een organisatie —"
+          searchable
+          searchPlaceholder="Zoek organisatie..."
         />
       </div>
 

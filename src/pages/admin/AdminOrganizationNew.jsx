@@ -74,6 +74,8 @@ export default function AdminOrganizationNew() {
               onChange={(val) => setForm((f) => ({ ...f, industry_id: val, template_id: "" }))}
               options={industries.map((i) => ({ value: i.id, label: i.name }))}
               placeholder="— Geen branche —"
+              searchable
+              searchPlaceholder="Zoek branche..."
             />
           </div>
           {form.industry_id && (

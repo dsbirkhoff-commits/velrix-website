@@ -31,6 +31,8 @@ export default function AdminAiReceptionists() {
           onChange={setOrgId}
           options={organizations.map((o) => ({ value: o.id, label: o.name }))}
           placeholder="— Kies een organisatie —"
+          searchable
+          searchPlaceholder="Zoek organisatie..."
         />
       </div>
       {!orgId ? null : (

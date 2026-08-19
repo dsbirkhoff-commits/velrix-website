@@ -80,6 +80,8 @@ export default function AdminTemplates() {
                   onChange={setIndustryId}
                   options={industries.map((i) => ({ value: i.id, label: i.name }))}
                   placeholder="— Geen —"
+                  searchable
+                  searchPlaceholder="Zoek branche..."
                 />
               </div>
             </div>
