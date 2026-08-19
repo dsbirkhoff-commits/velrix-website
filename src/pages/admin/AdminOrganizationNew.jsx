@@ -83,7 +83,12 @@ export default function AdminOrganizationNew() {
             <input className="dp-input" placeholder="bijv. Starter" value={form.plan_name} onChange={(e) => setForm((f) => ({ ...f, plan_name: e.target.value }))} />
           </div>
           {error && <div className="dp-toast dp-toast-error">{error}</div>}
-          <button type="submit" className="dp-btn" disabled={submitting}>
+          <style>{`
+            .dp-btn-white { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; background: #ffffff; color: #17130a; font-weight: 600; font-size: 13.5px; font-family: inherit; transition: background .15s; }
+            .dp-btn-white:hover:not(:disabled) { background: #e8e8e8; }
+            .dp-btn-white:disabled { cursor: default; opacity: .7; }
+          `}</style>
+          <button type="submit" className="dp-btn-white" disabled={submitting}>
             {submitting ? <Loader2 size={15} className="animate-spin" /> : <ArrowRight size={15} />}
             {submitting ? "Bezig…" : "Organisatie aanmaken"}
           </button>
