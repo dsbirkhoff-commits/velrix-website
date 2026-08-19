@@ -15,12 +15,19 @@ export default function AdminOrganizationNew() {
 
   useEffect(() => {
     adminApi.listIndustries().then(setIndustries).catch(() => {});
+    adminApi.listTemplates().then(setTemplates).catch(() => setTemplates([]));
   }, []);
 
   useEffect(() => {
-    if (!form.industry_id) { setTemplates([]); return; }
-    adminApi.listTemplates(form.industry_id).then(setTemplates).catch(() => setTemplates([]));
-  }, [form.industry_id]);
+    if (!form.industry_id) return;
+    // Standaardtemplate-bron: industries.template_id (NIET
+    // custom_field_templates.industry_id, zoals afgesproken). Als de
+    // gekozen branche geen standaardtemplate heeft, blijft template_id
+    // leeg — geen foutmelding, admin kan altijd zelf uit de volledige
+    // lijst kiezen.
+    const industry = industries.find((i) => i.id === form.industry_id);
+    setForm((f) => ({ ...f, template_id: industry?.template_id || "" }));
+  }, [form.industry_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const submit = async (e) => {
     e.preventDefault();
