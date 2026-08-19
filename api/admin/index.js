@@ -183,7 +183,9 @@ async function createOrganization(req, res, supabase) {
   //    vanuit de frontend bereikbaar.
   let invitedUser;
   try {
-    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email);
+    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+      redirectTo: "https://www.velrix.nl/portal/reset-password",
+    });
     if (inviteError) throw inviteError;
     invitedUser = inviteData.user;
   } catch (inviteErr) {
