@@ -11,14 +11,31 @@ import { supabase } from "../../lib/supabaseClient.js";
  *      zelf een wachtwoord instelt.
  *   2. "Forgot password" (self-service, getriggerd vanuit PortalLogin.jsx)
  *      — elk moment daarna.
- * Supabase's client library detecteert de token in de URL automatisch bij
- * het laden en zet een tijdelijke sessie op — deze pagina hoeft alleen
- * updateUser({ password }) aan te roepen zolang die sessie actief is. Geen
- * enkel wachtwoord staat ooit hardcoded in deze codebase.
+ *
+ * FIX (sessieconflict): supabaseClient.js heeft detectSessionInUrl UIT
+ * staan — deze pagina verwerkt de token uit de URL nu volledig zelf,
+ * expliciet, in gegarandeerde volgorde:
+ *   1. Foutformaat herkennen (#error=...&error_code=otp_expired&...) —
+ *      Supabase's eigen formaat voor een verlopen/ongeldige link.
+ *   2. Geldige token herkennen (#access_token=...&refresh_token=...&
+ *      type=recovery|invite) — beide officieel bevestigde Supabase-
+ *      formaten, letterlijk hetzelfde voor beide linktypes.
+ *   3. Een eventuele BESTAANDE sessie EERST expliciet beëindigen
+ *      (signOut), pas DAARNA de nieuwe sessie uit DEZE URL instellen
+ *      (setSession) — dit is de kern van de fix: een al-ingelogde
+ *      gebruiker in dezelfde browser kan de invite/recovery-sessie
+ *      hierdoor niet meer kapen, want er is geen moment meer waarop
+ *      Supabase zelf, buiten onze controle om, moet "kiezen" tussen twee
+ *      sessies.
+ *   4. De token uit de URL opruimen zodra 'ie verwerkt is (geen
+ *      hergebruik bij een refresh, geen gevoelige tokens zichtbaar in de
+ *      adresbalk).
+ * Geen enkel wachtwoord staat ooit hardcoded in deze codebase.
  */
 export default function ResetPassword() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
+  const [linkInvalid, setLinkInvalid] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,40 +43,67 @@ export default function ResetPassword() {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    // FIX (zie eerdere audit): de fallback beschouwt niet elke actieve
-    // sessie als bewijs van een geldige link — een al ingelogde gebruiker
-    // die deze URL rechtstreeks bezoekt (geen token in de URL) mag hier
-    // niet zomaar een nieuw wachtwoord kunnen zetten. Daarom blijft de
-    // fallback gebonden aan een daadwerkelijk herkend token-type in de
-    // hash (#...&type=recovery OF #...&type=invite — beide tellen mee,
-    // zie hieronder waarom).
-    const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    const linkType = params.get("type");
-    const isTokenLink = linkType === "recovery" || linkType === "invite";
+    let cancelled = false; // voorkomt dubbele state-updates (StrictMode-dubbelrender / unmount)
 
-    // FIX (dit incident): "wachtwoord vergeten"-links geven betrouwbaar
-    // het PASSWORD_RECOVERY-event. Een VELRIX-uitnodigingslink (nieuwe
-    // organisatie -> eigenaar uitnodigen) gebruikt echter een ander
-    // Supabase-mechanisme — daarbij is SIGNED_IN het event dat
-    // daadwerkelijk afgaat, niet PASSWORD_RECOVERY (bevestigd door
-    // Supabase zelf: bij invite/recovery-links vuurt SIGNED_IN vóór
-    // PASSWORD_RECOVERY, en voor invites specifiek is dat het enige
-    // betrouwbare signaal). SIGNED_IN reageert alleen op een sessie die
-    // TIJDENS de levensduur van deze listener ontstaat — een reeds
-    // bestaande, van tevoren ingelogde sessie triggert dit niet (die
-    // geeft hooguit INITIAL_SESSION, waar hier bewust niet op wordt
-    // gereageerd), dus de beveiligingsgarantie hierboven blijft intact.
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
-    });
+    async function processUrlToken() {
+      const hash = window.location.hash.replace(/^#/, "");
+      const params = new URLSearchParams(hash);
 
-    if (isTokenLink) {
-      supabase.auth.getSession().then(({ data }) => {
-        if (data.session) setReady(true);
+      // Supabase's eigen foutformaat voor een verlopen/al-gebruikte link:
+      // #error=access_denied&error_code=otp_expired&error_description=...
+      const errorCode = params.get("error_code") || params.get("error");
+      if (errorCode) {
+        if (cancelled) return;
+        setError(
+          errorCode === "otp_expired"
+            ? "Deze link is verlopen of al eerder gebruikt. Vraag een nieuwe uitnodiging of wachtwoord-resetlink aan."
+            : "Deze link is ongeldig. Vraag een nieuwe uitnodiging of wachtwoord-resetlink aan."
+        );
+        setLinkInvalid(true);
+        setReady(true);
+        return;
+      }
+
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token");
+      const linkType = params.get("type");
+      const isTokenLink = (linkType === "recovery" || linkType === "invite") && accessToken && refreshToken;
+
+      if (!isTokenLink) {
+        if (cancelled) return;
+        setError("Geen geldige link gevonden. Vraag een nieuwe uitnodiging of wachtwoord-resetlink aan.");
+        setLinkInvalid(true);
+        setReady(true);
+        return;
+      }
+
+      // Kern van de fix: eerst een eventuele bestaande sessie expliciet
+      // beëindigen — no-op als er geen sessie was, verwijdert gegarandeerd
+      // een conflicterende sessie als die er wel was.
+      await supabase.auth.signOut();
+      if (cancelled) return;
+
+      const { error: setSessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
       });
+      if (cancelled) return;
+
+      if (setSessionError) {
+        setError("Kon de link niet verwerken. Vraag een nieuwe link aan.");
+        setLinkInvalid(true);
+        setReady(true);
+        return;
+      }
+
+      // Token opruimen uit de zichtbare URL — voorkomt hergebruik bij een
+      // refresh en laat geen gevoelige tokens in de adresbalk staan.
+      window.history.replaceState(null, "", window.location.pathname);
+      setReady(true);
     }
 
-    return () => sub.subscription.unsubscribe();
+    processUrlToken();
+    return () => { cancelled = true; };
   }, []);
 
   const submit = async (e) => {
@@ -117,6 +161,11 @@ export default function ResetPassword() {
           <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--text-muted)", fontSize: 13.5 }}>
             <Loader2 size={16} className="animate-spin" /> Link controleren…
           </div>
+        ) : linkInvalid ? (
+          <>
+            <h1 className="login-title">Link ongeldig</h1>
+            <p className="login-sub">{error}</p>
+          </>
         ) : done ? (
           <div className="login-success"><Check size={16} /> Wachtwoord ingesteld — je wordt doorgestuurd…</div>
         ) : (

@@ -29,6 +29,61 @@ function requireAdmin(auth, res) {
 // organizations — lijst/detail, aanmaken (volledige onboardingflow),
 // bijwerken (naam/branche/status via action: 'activate'|'pause')
 // ---------------------------------------------------------------------
+/**
+ * Stuurt een bestaande, nog niet geaccepteerde invite opnieuw — raakt
+ * UITSLUITEND auth.users (via getUserById + inviteUserByEmail) en, puur
+ * ter beveiliging, een read-only check op memberships. Maakt NOOIT een
+ * nieuwe organisatie, membership, of subscription aan — geen enkel risico
+ * op duplicatie, per ontwerp.
+ */
+async function resendInvite(res, supabase, organizationId, userId) {
+  if (!userId) { res.status(400).json({ error: "Ontbrekend user_id." }); return; }
+
+  // Scoping-check: deze user_id moet daadwerkelijk bij DEZE organisatie
+  // horen — voorkomt dat een admin per ongeluk (of via een geraden
+  // user_id) een invite voor een onverwante organisatie opnieuw verstuurt.
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("user_id")
+    .eq("user_id", userId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+  if (!membership) { res.status(404).json({ error: "Gebruiker hoort niet bij deze organisatie." }); return; }
+
+  let user;
+  try {
+    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
+    if (userError) throw userError;
+    user = userData.user;
+  } catch (err) {
+    console.error("resendInvite — kon gebruiker niet ophalen:", err);
+    res.status(500).json({ error: "Kon gebruiker niet ophalen." });
+    return;
+  }
+  if (!user) { res.status(404).json({ error: "Gebruiker niet gevonden." }); return; }
+
+  // Best-effort signaal, niet 100% garandeerd: last_sign_in_at blijft
+  // null totdat iemand daadwerkelijk voor het eerst succesvol is
+  // ingelogd (zie de chat-analyse voor de kanttekening hierbij).
+  if (user.last_sign_in_at) {
+    res.status(400).json({ error: "Deze gebruiker is al actief. Gebruik 'Wachtwoord vergeten' om opnieuw toegang te krijgen." });
+    return;
+  }
+
+  try {
+    const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(user.email, {
+      redirectTo: "https://www.velrix.nl/portal/reset-password",
+    });
+    if (inviteError) throw inviteError;
+  } catch (err) {
+    console.error("resendInvite — invite opnieuw versturen mislukt:", err);
+    res.status(500).json({ error: err.message || "Uitnodiging opnieuw versturen mislukt." });
+    return;
+  }
+
+  res.status(200).json({ success: true, email: user.email });
+}
+
 async function handleOrganizations(req, res, supabase, auth) {
   if (!requireAdmin(auth, res)) return;
 
@@ -43,7 +98,22 @@ async function handleOrganizations(req, res, supabase, auth) {
         supabase.from("subscriptions").select("*").eq("organization_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("custom_field_definitions").select("*").eq("organization_id", id).eq("entity_type", "customer").order("sort_order"),
       ]);
-      res.status(200).json({ ...org, memberships: memberships || [], subscription: subscription || null, custom_fields_schema: schema || [] });
+      // Verrijk elke membership met e-mail + laatste-inlog, nodig voor de
+      // "Uitnodiging opnieuw sturen"-knop (bevestigingstekst + "is deze
+      // gebruiker al actief"-check). memberships zelf bevat geen e-mail
+      // (leeft in auth.users) — best-effort per lid opgehaald, faalt
+      // een enkel lid nooit de hele pagina.
+      const membershipsWithEmail = await Promise.all(
+        (memberships || []).map(async (m) => {
+          try {
+            const { data: userData } = await supabase.auth.admin.getUserById(m.user_id);
+            return { ...m, email: userData?.user?.email || null, last_sign_in_at: userData?.user?.last_sign_in_at || null };
+          } catch {
+            return { ...m, email: null, last_sign_in_at: null };
+          }
+        })
+      );
+      res.status(200).json({ ...org, memberships: membershipsWithEmail, subscription: subscription || null, custom_fields_schema: schema || [] });
       return;
     }
     const { data, error } = await supabase.from("organizations").select("*, industries(name, slug)").order("created_at", { ascending: false });
@@ -61,6 +131,12 @@ async function handleOrganizations(req, res, supabase, auth) {
     const { id } = req.query || {};
     if (!id) { res.status(400).json({ error: "Ontbrekend id." }); return; }
     const body = req.body || {};
+
+    if (body.action === "resend_invite") {
+      await resendInvite(res, supabase, id, body.user_id);
+      return;
+    }
+
     const updates = {};
     if (body.action === "activate") updates.status = "actief";
     else if (body.action === "pause") updates.status = "gepauzeerd";

@@ -21,4 +21,16 @@ if (!url || !anonKey) {
   );
 }
 
-export const supabase = createClient(url || "https://placeholder.supabase.co", anonKey || "placeholder");
+export const supabase = createClient(url || "https://placeholder.supabase.co", anonKey || "placeholder", {
+  auth: {
+    // FIX (sessieconflict-analyse): automatische, impliciete verwerking
+    // van een URL-token gebeurt vóór React zelfs maar mount, en heeft
+    // geen enkele controle over een reeds actieve sessie in dezelfde
+    // browser. ResetPassword.jsx verwerkt de token nu zelf, expliciet,
+    // met een gegarandeerde volgorde (bestaande sessie eerst beëindigen,
+    // dan pas de nieuwe sessie instellen). Geen enkele andere plek in de
+    // codebase leunt op automatische URL-tokendetectie (geverifieerd) —
+    // veilig om hier uit te zetten.
+    detectSessionInUrl: false,
+  },
+});

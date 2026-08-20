@@ -12,6 +12,7 @@ export default function AdminOrganizationDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [resendBusy, setResendBusy] = useState(null);
   const [toast, setToast] = useState(null);
 
   const load = () => {
@@ -31,6 +32,20 @@ export default function AdminOrganizationDetail() {
       setToast({ type: "error", msg: err.message });
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleResend = async (m) => {
+    const label = m.email || m.user_id;
+    if (!window.confirm(`Weet je zeker dat je de uitnodiging opnieuw wilt sturen naar ${label}?`)) return;
+    setResendBusy(m.user_id);
+    try {
+      await adminApi.resendInvite(id, m.user_id);
+      setToast({ type: "success", msg: "Uitnodiging opnieuw verstuurd." });
+    } catch (err) {
+      setToast({ type: "error", msg: err.message || "Uitnodiging opnieuw versturen mislukt." });
+    } finally {
+      setResendBusy(null);
     }
   };
 
@@ -65,7 +80,19 @@ export default function AdminOrganizationDetail() {
         <div className="dp-card">
           <div className="dp-section-title"><Users size={15} /> Gebruikers</div>
           {org.memberships.length === 0 ? <p style={{ fontSize: 13, color: "var(--text-dim)" }}>Nog geen gebruiker gekoppeld.</p> : (
-            org.memberships.map((m) => <div key={m.user_id} style={{ fontSize: 13, padding: "6px 0" }}>{m.user_id} — {m.role}</div>)
+            org.memberships.map((m) => (
+              <div key={m.user_id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, fontSize: 13, padding: "8px 0", borderTop: "1px solid var(--border)" }}>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.email || m.user_id} — {m.role}</span>
+                <button
+                  className="dp-btn-ghost"
+                  style={{ padding: "5px 10px", fontSize: 11.5, flexShrink: 0 }}
+                  disabled={resendBusy === m.user_id}
+                  onClick={() => handleResend(m)}
+                >
+                  {resendBusy === m.user_id ? <Loader2 size={12} className="animate-spin" /> : "Uitnodiging opnieuw sturen"}
+                </button>
+              </div>
+            ))
           )}
         </div>
         <div className="dp-card">

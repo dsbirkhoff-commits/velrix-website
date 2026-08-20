@@ -42,6 +42,7 @@ export const adminApi = {
   updateOrganization: (id, body) => request(`/api/admin/index?resource=organizations&id=${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(body) }),
   activateOrganization: (id) => request(`/api/admin/index?resource=organizations&id=${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify({ action: "activate" }) }),
   pauseOrganization: (id) => request(`/api/admin/index?resource=organizations&id=${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify({ action: "pause" }) }),
+  resendInvite: (orgId, userId) => request(`/api/admin/index?resource=organizations&id=${encodeURIComponent(orgId)}`, { method: "PUT", body: JSON.stringify({ action: "resend_invite", user_id: userId }) }),
 
   // Users
   listUsers: (organizationId) => request(`/api/admin/index?resource=users${qs({ organization_id: organizationId })}`),
