@@ -395,6 +395,7 @@ async function handleIndustries(req, res, supabase, auth) {
     const { data, error } = await supabase.from("industries").insert({
       name: body.name.trim(), slug: body.slug.trim(), description: body.description || null,
       active: body.active !== undefined ? Boolean(body.active) : true, sort_order: body.sort_order || 0,
+      template_id: body.template_id || null,
     }).select().maybeSingle();
     if (error) { res.status(500).json({ error: "Aanmaken mislukt (bestaat de slug al?)." }); return; }
     res.status(201).json(data);
@@ -411,6 +412,10 @@ async function handleIndustries(req, res, supabase, auth) {
     if (body.description !== undefined) updates.description = body.description;
     if (body.active !== undefined) updates.active = Boolean(body.active);
     if (body.sort_order !== undefined) updates.sort_order = body.sort_order;
+    // template_id: expliciet leeg (""/null) betekent bewust "koppeling
+    // verwijderen", geen weigering — vandaar de || null i.p.v. gewoon
+    // doorgeven, wat een lege string in de kolom zou zetten i.p.v. NULL.
+    if (body.template_id !== undefined) updates.template_id = body.template_id || null;
     const { data, error } = await supabase.from("industries").update(updates).eq("id", id).select().maybeSingle();
     if (error) { res.status(500).json({ error: "Bijwerken mislukt." }); return; }
     if (!data) { res.status(404).json({ error: "Branche niet gevonden." }); return; }
