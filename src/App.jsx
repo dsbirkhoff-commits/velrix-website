@@ -10,6 +10,19 @@ import Terms from "./pages/Terms.jsx";
 import Privacy from "./pages/Privacy.jsx";
 import AdminConnect from "./pages/AdminConnect.jsx";
 
+// PUUR — volledig geïsoleerde demo-site (fictief creatief contentbureau,
+// gebruikt om VELRIX te demonstreren), lazy-loaded om exact dezelfde
+// reden als het klantportaal hieronder: bezoekers van de bestaande
+// VELRIX-site die nooit naar /puur/* gaan, downloaden hier niets van.
+const PuurLayout = lazy(() => import("./components/puur/PuurLayout.jsx"));
+const PuurHome = lazy(() => import("./pages/puur/PuurHome.jsx"));
+const PuurAbout = lazy(() => import("./pages/puur/PuurAbout.jsx"));
+const PuurServices = lazy(() => import("./pages/puur/PuurServices.jsx"));
+const PuurWork = lazy(() => import("./pages/puur/PuurWork.jsx"));
+const PuurWorkDetail = lazy(() => import("./pages/puur/PuurWorkDetail.jsx"));
+const PuurPricing = lazy(() => import("./pages/puur/PuurPricing.jsx"));
+const PuurContact = lazy(() => import("./pages/puur/PuurContact.jsx"));
+
 // Lazy-loaded: het VELRIX-klantportaal (en de Supabase-client die het
 // nodig heeft) is een eigen chunk, alleen gedownload door bezoekers die
 // echt naar /portal/* gaan. Bezoekers van de publieke site betalen hier
@@ -54,6 +67,16 @@ function PortalFallback() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0b0d" }}>
       <Loader2 size={22} className="animate-spin" style={{ color: "#c9a668" }} />
+    </div>
+  );
+}
+
+// Eigen, lichte fallback voor /puur/* — de donkere VELRIX-fallback
+// hierboven zou tijdens het laden een verkeerde-merk-flits geven.
+function PuurFallback() {
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#EFEAE0" }}>
+      <Loader2 size={22} className="animate-spin" style={{ color: "#B8272E" }} />
     </div>
   );
 }
@@ -116,6 +139,18 @@ export default function App() {
           <Route path="/algemene-voorwaarden" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/admin/koppel-agenda" element={<AdminConnect />} />
+
+          {/* PUUR — volledig geïsoleerde publieke demo-site, geen enkele
+              gedeelde state/auth met de portal of Admin Backend. */}
+          <Route element={<Suspense fallback={<PuurFallback />}><PuurLayout /></Suspense>}>
+            <Route path="/puur" element={<PuurHome />} />
+            <Route path="/puur/over-ons" element={<PuurAbout />} />
+            <Route path="/puur/diensten" element={<PuurServices />} />
+            <Route path="/puur/werk" element={<PuurWork />} />
+            <Route path="/puur/werk/:slug" element={<PuurWorkDetail />} />
+            <Route path="/puur/prijzen" element={<PuurPricing />} />
+            <Route path="/puur/contact" element={<PuurContact />} />
+          </Route>
 
           {/* VELRIX Klantportaal */}
           <Route
