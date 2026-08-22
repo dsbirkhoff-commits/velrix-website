@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Loader2, Play, Pause, Users, ListTree, CreditCard } from "lucide-react";
+import { Loader2, Play, Pause, Pencil, X, Users, ListTree, CreditCard } from "lucide-react";
 import { adminApi } from "../../lib/adminApi.js";
 import DashboardPageStyles from "../../components/DashboardPageStyles.jsx";
+import DarkSelect from "../../components/DarkSelect.jsx";
 
 const STATUS_BADGE = { concept: "dp-badge-gold", actief: "dp-badge-green", gepauzeerd: "dp-badge-red" };
 
@@ -14,6 +15,15 @@ export default function AdminOrganizationDetail() {
   const [busy, setBusy] = useState(false);
   const [resendBusy, setResendBusy] = useState(null);
   const [toast, setToast] = useState(null);
+
+  // Bewerken: eigen, losse state — raakt geen enkele andere sectie
+  // (memberships/subscription/custom fields/Activeren-Pauzeren) aan.
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editIndustryId, setEditIndustryId] = useState("");
+  const [industries, setIndustries] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -49,6 +59,44 @@ export default function AdminOrganizationDetail() {
     }
   };
 
+  const startEdit = () => {
+    setEditName(org.name);
+    setEditIndustryId(org.industry_id || "");
+    setEditError(null);
+    setEditing(true);
+    if (industries.length === 0) {
+      adminApi.listIndustries().then(setIndustries).catch(() => {});
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setEditError(null);
+    // Geen API-call, geen wijziging — org-state blijft exact zoals hij was.
+  };
+
+  const saveEdit = async () => {
+    setSaving(true);
+    setEditError(null);
+    try {
+      // Uitsluitend name + industry_id — geen enkel ander veld. Een
+      // branchewijziging raakt hierdoor gegarandeerd uitsluitend
+      // organizations.industry_id: custom_field_definitions, customers,
+      // memberships, subscriptions en templates worden door deze
+      // aanroep op geen enkele manier aangeraakt.
+      await adminApi.updateOrganization(id, { name: editName, industry_id: editIndustryId || null });
+      setEditing(false);
+      load();
+      setToast({ type: "success", msg: "Organisatie bijgewerkt" });
+    } catch (err) {
+      // Bij een fout blijft de edit-state open met de ingevoerde waarden
+      // behouden — niets wordt teruggezet naar de oude gegevens.
+      setEditError(err.message || "Opslaan mislukt.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) return <div className="dp-empty"><Loader2 size={20} className="animate-spin" /></div>;
   if (error) return <div className="dp-empty">{error}</div>;
   if (!org) return null;
@@ -57,21 +105,52 @@ export default function AdminOrganizationDetail() {
     <div>
       <DashboardPageStyles />
       <div className="dp-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-        <div>
-          <h1 className="dp-title">{org.name}</h1>
-          <p className="dp-sub">
-            <span className={`dp-badge ${STATUS_BADGE[org.status]}`}>{org.status}</span>
-            {org.industries?.name && <span style={{ marginLeft: 10 }}>{org.industries.name}</span>}
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {org.status !== "actief" && (
-            <button className="dp-btn" disabled={busy} onClick={() => doAction("activate")}><Play size={14} /> Activeren</button>
-          )}
-          {org.status === "actief" && (
-            <button className="dp-btn-ghost" disabled={busy} onClick={() => doAction("pause")}><Pause size={14} /> Pauzeren</button>
-          )}
-        </div>
+        {editing ? (
+          <div className="dp-card" style={{ width: "100%", maxWidth: 460 }}>
+            <div className="dp-field">
+              <label className="dp-label">Organisatienaam</label>
+              <input className="dp-input" value={editName} onChange={(e) => setEditName(e.target.value)} disabled={saving} />
+            </div>
+            <div className="dp-field">
+              <label className="dp-label">Branche</label>
+              <DarkSelect
+                value={editIndustryId}
+                onChange={setEditIndustryId}
+                options={industries.map((i) => ({ value: i.id, label: i.name }))}
+                placeholder="— Geen branche —"
+                searchable
+                searchPlaceholder="Zoek branche..."
+                disabled={saving}
+              />
+            </div>
+            {editError && <div className="dp-toast dp-toast-error" style={{ marginBottom: 12 }}>{editError}</div>}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="dp-btn" disabled={saving} onClick={saveEdit}>
+                {saving ? <Loader2 size={14} className="animate-spin" /> : "Opslaan"}
+              </button>
+              <button className="dp-btn-ghost" disabled={saving} onClick={cancelEdit}><X size={14} /> Annuleren</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div>
+              <h1 className="dp-title">{org.name}</h1>
+              <p className="dp-sub">
+                <span className={`dp-badge ${STATUS_BADGE[org.status]}`}>{org.status}</span>
+                {org.industries?.name && <span style={{ marginLeft: 10 }}>{org.industries.name}</span>}
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="dp-btn-ghost" onClick={startEdit}><Pencil size={14} /> Bewerken</button>
+              {org.status !== "actief" && (
+                <button className="dp-btn" disabled={busy} onClick={() => doAction("activate")}><Play size={14} /> Activeren</button>
+              )}
+              {org.status === "actief" && (
+                <button className="dp-btn-ghost" disabled={busy} onClick={() => doAction("pause")}><Pause size={14} /> Pauzeren</button>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {toast && <div className={`dp-toast ${toast.type === "success" ? "dp-toast-success" : "dp-toast-error"}`}>{toast.msg}</div>}
