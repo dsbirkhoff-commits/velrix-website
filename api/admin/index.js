@@ -16,6 +16,7 @@
  */
 import { getServiceClient } from "../_supabase.js";
 import { resolveOrgFromRequest } from "../_orgAuth.js";
+import { getSchemaForOrg, validateCustomFields } from "../_customFields.js";
 
 function requireAdmin(auth, res) {
   if (!auth || !auth.isAdmin) {
@@ -542,6 +543,113 @@ async function handleTemplates(req, res, supabase, auth) {
 // customers / appointments / services / ai_settings — alleen-lezen,
 // cross-organisatie, uitsluitend voor admin
 // ---------------------------------------------------------------------
+// ---------------------------------------------------------------------
+// customers — admin-scoped CRUD (aparte functie, NIET via
+// handleReadOnlyOrgData, om appointments/services/ai_settings — die
+// diezelfde generieke, bewust read-only functie blijven delen —
+// ongewijzigd te laten). organization_id komt hier ALTIJD expliciet uit
+// de request (query/body), nooit uit de aanroeper's eigen membership —
+// exact het patroon dat de rest van deze admin-API al overal gebruikt.
+// Archiveren via de bestaande status-kolom ('actief'/'inactief'), GEEN
+// hard delete vanuit de admin-kant (geen soft-delete-mechanisme in het
+// schema, dus een permanente verwijdering hier zou onomkeerbaar zijn).
+// ---------------------------------------------------------------------
+async function handleAdminCustomers(req, res, supabase, auth) {
+  if (!requireAdmin(auth, res)) return;
+
+  if (req.method === "GET") {
+    const { organization_id, id } = req.query || {};
+    if (id) {
+      const { data, error } = await supabase.from("customers").select("*").eq("id", id).maybeSingle();
+      if (error) { res.status(500).json({ error: "Kon klant niet ophalen." }); return; }
+      if (!data) { res.status(404).json({ error: "Klant niet gevonden." }); return; }
+      res.status(200).json(data);
+      return;
+    }
+    if (!organization_id) { res.status(400).json({ error: "organization_id is verplicht." }); return; }
+    const { data, error } = await supabase.from("customers").select("*").eq("organization_id", organization_id).order("created_at", { ascending: false });
+    if (error) { res.status(500).json({ error: "Kon klanten niet ophalen." }); return; }
+    res.status(200).json(data || []);
+    return;
+  }
+
+  if (req.method === "POST") {
+    const body = req.body || {};
+    const organizationId = body.organization_id;
+    if (!organizationId) { res.status(400).json({ error: "organization_id is verplicht." }); return; }
+    const voornaam = body.voornaam || "";
+    const achternaam = body.achternaam || "";
+    const naam = body.naam || `${voornaam} ${achternaam}`.trim();
+    if (!naam) { res.status(400).json({ error: "Naam is verplicht." }); return; }
+
+    let cleanedCustomFields = {};
+    if (body.custom_fields) {
+      let schema;
+      try {
+        schema = await getSchemaForOrg(supabase, organizationId, "customer");
+      } catch {
+        res.status(500).json({ error: "Kon custom-field-schema niet ophalen." });
+        return;
+      }
+      const result = validateCustomFields(body.custom_fields, schema);
+      if (!result.valid) { res.status(400).json({ error: result.errors.join(" ") }); return; }
+      cleanedCustomFields = result.cleaned;
+    }
+
+    const payload = {
+      organization_id: organizationId, naam,
+      voornaam: body.voornaam || null, achternaam: body.achternaam || null,
+      email: body.email || null, telefoonnummer: body.telefoonnummer || null, notities: body.notities || null,
+      status: "actief", custom_fields: cleanedCustomFields,
+    };
+    const { data, error } = await supabase.from("customers").insert(payload).select().maybeSingle();
+    if (error) { res.status(500).json({ error: "Aanmaken mislukt." }); return; }
+    res.status(201).json(data);
+    return;
+  }
+
+  if (req.method === "PUT") {
+    const { id } = req.query || {};
+    if (!id) { res.status(400).json({ error: "Ontbrekend id." }); return; }
+    const { data: existing, error: existingError } = await supabase.from("customers").select("organization_id").eq("id", id).maybeSingle();
+    if (existingError) { res.status(500).json({ error: "Kon klant niet ophalen." }); return; }
+    if (!existing) { res.status(404).json({ error: "Klant niet gevonden." }); return; }
+
+    const body = req.body || {};
+    const updates = {};
+    if (body.naam !== undefined) updates.naam = body.naam;
+    if (body.voornaam !== undefined) updates.voornaam = body.voornaam;
+    if (body.achternaam !== undefined) updates.achternaam = body.achternaam;
+    if (body.email !== undefined) updates.email = body.email;
+    if (body.telefoonnummer !== undefined) updates.telefoonnummer = body.telefoonnummer;
+    if (body.notities !== undefined) updates.notities = body.notities;
+    if (body.status !== undefined) {
+      if (!["actief", "inactief"].includes(body.status)) { res.status(400).json({ error: "Ongeldige status." }); return; }
+      updates.status = body.status;
+    }
+    if (body.custom_fields !== undefined) {
+      let schema;
+      try {
+        schema = await getSchemaForOrg(supabase, existing.organization_id, "customer");
+      } catch {
+        res.status(500).json({ error: "Kon custom-field-schema niet ophalen." });
+        return;
+      }
+      const result = validateCustomFields(body.custom_fields, schema);
+      if (!result.valid) { res.status(400).json({ error: result.errors.join(" ") }); return; }
+      updates.custom_fields = result.cleaned;
+    }
+    if (Object.keys(updates).length === 0) { res.status(400).json({ error: "Niets om bij te werken." }); return; }
+
+    const { data, error } = await supabase.from("customers").update(updates).eq("id", id).select().maybeSingle();
+    if (error) { res.status(500).json({ error: "Bijwerken mislukt." }); return; }
+    res.status(200).json(data);
+    return;
+  }
+
+  res.status(405).json({ error: "Method not allowed" });
+}
+
 async function handleReadOnlyOrgData(req, res, supabase, auth, table) {
   if (!requireAdmin(auth, res)) return;
   if (req.method !== "GET") { res.status(405).json({ error: "Method not allowed" }); return; }
@@ -659,7 +767,7 @@ export default async function handler(req, res) {
     case "subscriptions": return handleSubscriptions(req, res, supabase, auth);
     case "industries": return handleIndustries(req, res, supabase, auth);
     case "custom-field-templates": return handleTemplates(req, res, supabase, auth);
-    case "customers": return handleReadOnlyOrgData(req, res, supabase, auth, "customers");
+    case "customers": return handleAdminCustomers(req, res, supabase, auth);
     case "appointments": return handleReadOnlyOrgData(req, res, supabase, auth, "appointments");
     case "services": return handleReadOnlyOrgData(req, res, supabase, auth, "services");
     case "ai_settings": return handleReadOnlyOrgData(req, res, supabase, auth, "ai_settings");

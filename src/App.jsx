@@ -56,6 +56,7 @@ const AdminUsers = lazy(() => import("./pages/admin/AdminUsers.jsx"));
 const AdminBranches = lazy(() => import("./pages/admin/AdminBranches.jsx"));
 const AdminTemplates = lazy(() => import("./pages/admin/AdminTemplates.jsx"));
 const AdminCustomers = lazy(() => import("./pages/admin/AdminCustomers.jsx"));
+const AdminCustomerDetail = lazy(() => import("./pages/admin/AdminCustomerDetail.jsx"));
 const AdminAppointments = lazy(() => import("./pages/admin/AdminAppointments.jsx"));
 const AdminServices = lazy(() => import("./pages/admin/AdminServices.jsx"));
 const AdminAiReceptionists = lazy(() => import("./pages/admin/AdminAiReceptionists.jsx"));
@@ -193,6 +194,7 @@ export default function App() {
             <Route path="/admin/branches" element={<Suspense fallback={<PortalFallback />}><AdminBranches /></Suspense>} />
             <Route path="/admin/custom-field-templates" element={<Suspense fallback={<PortalFallback />}><AdminTemplates /></Suspense>} />
             <Route path="/admin/customers" element={<Suspense fallback={<PortalFallback />}><AdminCustomers /></Suspense>} />
+            <Route path="/admin/customers/:id" element={<Suspense fallback={<PortalFallback />}><AdminCustomerDetail /></Suspense>} />
             <Route path="/admin/appointments" element={<Suspense fallback={<PortalFallback />}><AdminAppointments /></Suspense>} />
             <Route path="/admin/services" element={<Suspense fallback={<PortalFallback />}><AdminServices /></Suspense>} />
             <Route path="/admin/ai-receptionists" element={<Suspense fallback={<PortalFallback />}><AdminAiReceptionists /></Suspense>} />

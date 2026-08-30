@@ -67,6 +67,9 @@ export const adminApi = {
 
   // Cross-org, read-only data viewers
   listOrgCustomers: (organizationId) => request(`/api/admin/index?resource=customers&organization_id=${encodeURIComponent(organizationId)}`),
+  getOrgCustomer: (id) => request(`/api/admin/index?resource=customers&id=${encodeURIComponent(id)}`),
+  createOrgCustomer: (body) => request(`/api/admin/index?resource=customers`, { method: "POST", body: JSON.stringify(body) }),
+  updateOrgCustomer: (id, body) => request(`/api/admin/index?resource=customers&id=${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(body) }),
   listOrgAppointments: (organizationId) => request(`/api/admin/index?resource=appointments&organization_id=${encodeURIComponent(organizationId)}`),
   listOrgServices: (organizationId) => request(`/api/admin/index?resource=services&organization_id=${encodeURIComponent(organizationId)}`),
   getOrgAiSettings: (organizationId) => request(`/api/admin/index?resource=ai_settings&organization_id=${encodeURIComponent(organizationId)}`),
