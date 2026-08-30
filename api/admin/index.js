@@ -364,9 +364,18 @@ async function handleSubscriptions(req, res, supabase, auth) {
     if (!id) { res.status(400).json({ error: "Ontbrekend id." }); return; }
     const body = req.body || {};
     const updates = {};
-    if (body.status !== undefined) updates.status = body.status;
+    if (body.status !== undefined) {
+      if (!["actief", "gepauzeerd", "opgezegd"].includes(body.status)) {
+        res.status(400).json({ error: "Ongeldige status. Moet 'actief', 'gepauzeerd' of 'opgezegd' zijn." });
+        return;
+      }
+      updates.status = body.status;
+    }
     if (body.plan_name !== undefined) updates.plan_name = body.plan_name;
     if (body.notes !== undefined) updates.notes = body.notes;
+    // organization_id wordt hier bewust NOOIT verwerkt — een admin kan een
+    // subscription hierdoor niet naar een andere organisatie verplaatsen,
+    // ook niet als het veld expliciet wordt meegestuurd.
     const { data, error } = await supabase.from("subscriptions").update(updates).eq("id", id).select().maybeSingle();
     if (error) { res.status(500).json({ error: "Bijwerken mislukt." }); return; }
     if (!data) { res.status(404).json({ error: "Abonnement niet gevonden." }); return; }

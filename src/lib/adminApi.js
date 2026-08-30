@@ -50,6 +50,7 @@ export const adminApi = {
 
   // Subscriptions
   listSubscriptions: (organizationId) => request(`/api/admin/index?resource=subscriptions${qs({ organization_id: organizationId })}`),
+  createSubscription: (body) => request(`/api/admin/index?resource=subscriptions`, { method: "POST", body: JSON.stringify(body) }),
   updateSubscription: (id, body) => request(`/api/admin/index?resource=subscriptions&id=${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(body) }),
 
   // Industries (Branches)
