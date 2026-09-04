@@ -817,6 +817,10 @@ async function handleInvoices(req, res, supabase, auth) {
     for (const key of ["invoice_number", "description", "subtotal", "tax", "total", "currency", "status", "due_date", "pdf_url"]) {
       if (body[key] !== undefined) updates[key] = body[key];
     }
+    if (updates.status !== undefined && !["openstaand", "betaald", "verlopen"].includes(updates.status)) {
+      res.status(400).json({ error: "Ongeldige status. Moet 'openstaand', 'betaald' of 'verlopen' zijn." });
+      return;
+    }
     if (body.status === "betaald" && !body.paid_at) updates.paid_at = new Date().toISOString();
     const { data, error } = await supabase.from("invoices").update(updates).eq("id", id).select().maybeSingle();
     if (error) { res.status(500).json({ error: "Bijwerken mislukt." }); return; }
