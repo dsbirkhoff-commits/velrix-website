@@ -21,6 +21,7 @@
 import { getServiceClient } from "./_supabase.js";
 import { resolveOrgFromRequest, requireOrg } from "./_orgAuth.js";
 import { getSchemaForOrg, validateCustomFields } from "./_customFields.js";
+import { insertCustomer } from "./_customerInsert.js";
 
 export default async function handler(req, res) {
   const auth = await resolveOrgFromRequest(req);
@@ -41,48 +42,8 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     const body = req.body || {};
-    const voornaam = (body.voornaam || "").trim();
-    const achternaam = (body.achternaam || "").trim();
-    if (!voornaam && !achternaam) {
-      res.status(400).json({ error: "Voornaam of achternaam is verplicht." });
-      return;
-    }
-
-    let cleanedCustomFields = {};
-    if (body.custom_fields && Object.keys(body.custom_fields).length > 0) {
-      let schema;
-      try {
-        schema = await getSchemaForOrg(supabase, organizationId);
-      } catch {
-        res.status(500).json({ error: "Kon schema niet controleren." });
-        return;
-      }
-      const result = validateCustomFields(body.custom_fields, schema);
-      if (!result.valid) {
-        res.status(400).json({ error: result.errors.join(" ") });
-        return;
-      }
-      cleanedCustomFields = result.cleaned;
-    }
-
-    const payload = {
-      organization_id: organizationId,
-      naam: `${voornaam} ${achternaam}`.trim(),
-      voornaam: voornaam || null,
-      achternaam: achternaam || null,
-      email: body.email || null,
-      telefoonnummer: body.telefoonnummer || null,
-      notities: body.notities || null,
-      status: "actief",
-      custom_fields: cleanedCustomFields,
-    };
-    const { data, error } = await supabase.from("customers").insert(payload).select().maybeSingle();
-    if (error) {
-      console.error("POST /api/customers error:", error);
-      res.status(500).json({ error: "Aanmaken mislukt." });
-      return;
-    }
-    res.status(201).json(data);
+    const { status, body: responseBody } = await insertCustomer(supabase, organizationId, body);
+    res.status(status).json(responseBody);
     return;
   }
 
