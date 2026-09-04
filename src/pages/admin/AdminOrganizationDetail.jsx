@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Loader2, Play, Pause, Pencil, X, Users, ListTree, CreditCard } from "lucide-react";
+import { Loader2, Play, Pause, Pencil, X, Users, ListTree, CreditCard, Trash2 } from "lucide-react";
 import { adminApi } from "../../lib/adminApi.js";
 import DashboardPageStyles from "../../components/DashboardPageStyles.jsx";
 import DarkSelect from "../../components/DarkSelect.jsx";
 
+const ROLE_OPTIONS = [
+  { value: "owner", label: "owner" },
+  { value: "member", label: "member" },
+];
 const STATUS_BADGE = { concept: "dp-badge-gold", actief: "dp-badge-green", gepauzeerd: "dp-badge-red" };
 
 export default function AdminOrganizationDetail() {
@@ -14,6 +18,8 @@ export default function AdminOrganizationDetail() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [resendBusy, setResendBusy] = useState(null);
+  const [roleBusy, setRoleBusy] = useState(null);
+  const [removeBusy, setRemoveBusy] = useState(null);
   const [toast, setToast] = useState(null);
 
   // Bewerken: eigen, losse state — raakt geen enkele andere sectie
@@ -56,6 +62,34 @@ export default function AdminOrganizationDetail() {
       setToast({ type: "error", msg: err.message || "Uitnodiging opnieuw versturen mislukt." });
     } finally {
       setResendBusy(null);
+    }
+  };
+
+  const handleRoleChange = async (m, newRole) => {
+    setRoleBusy(m.user_id);
+    try {
+      await adminApi.updateUser(m.user_id, { organization_id: id, role: newRole });
+      load(); // server blijft de bron van waarheid
+      setToast({ type: "success", msg: "Rol bijgewerkt." });
+    } catch (err) {
+      setToast({ type: "error", msg: err.message || "Rol wijzigen mislukt." });
+    } finally {
+      setRoleBusy(null);
+    }
+  };
+
+  const handleRemove = async (m) => {
+    const label = m.email || m.user_id;
+    if (!window.confirm(`Weet je zeker dat je ${label} wilt verwijderen uit deze organisatie? Dit kan niet ongedaan worden gemaakt.`)) return;
+    setRemoveBusy(m.user_id);
+    try {
+      await adminApi.removeUserFromOrganization(m.user_id, id);
+      load();
+      setToast({ type: "success", msg: "Gebruiker verwijderd." });
+    } catch (err) {
+      setToast({ type: "error", msg: err.message || "Verwijderen mislukt." });
+    } finally {
+      setRemoveBusy(null);
     }
   };
 
@@ -161,7 +195,16 @@ export default function AdminOrganizationDetail() {
           {org.memberships.length === 0 ? <p style={{ fontSize: 13, color: "var(--text-dim)" }}>Nog geen gebruiker gekoppeld.</p> : (
             org.memberships.map((m) => (
               <div key={m.user_id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, fontSize: 13, padding: "8px 0", borderTop: "1px solid var(--border)" }}>
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.email || m.user_id} — {m.role}</span>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{m.email || m.user_id}</span>
+                <div style={{ width: 110, flexShrink: 0 }}>
+                  <DarkSelect
+                    value={m.role}
+                    onChange={(val) => handleRoleChange(m, val)}
+                    options={ROLE_OPTIONS}
+                    hideEmptyOption
+                    disabled={roleBusy === m.user_id}
+                  />
+                </div>
                 <button
                   className="dp-btn-ghost"
                   style={{ padding: "5px 10px", fontSize: 11.5, flexShrink: 0 }}
@@ -169,6 +212,14 @@ export default function AdminOrganizationDetail() {
                   onClick={() => handleResend(m)}
                 >
                   {resendBusy === m.user_id ? <Loader2 size={12} className="animate-spin" /> : "Uitnodiging opnieuw sturen"}
+                </button>
+                <button
+                  className="dp-btn-ghost"
+                  style={{ padding: "5px 9px", fontSize: 11.5, flexShrink: 0 }}
+                  disabled={removeBusy === m.user_id}
+                  onClick={() => handleRemove(m)}
+                >
+                  {removeBusy === m.user_id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={13} />}
                 </button>
               </div>
             ))

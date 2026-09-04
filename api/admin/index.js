@@ -302,7 +302,9 @@ async function createOrganization(req, res, supabase) {
 }
 
 // ---------------------------------------------------------------------
-// users
+// users — membership-beheer. GET/PUT bestonden al; POST (gebruiker
+// toevoegen aan een BESTAANDE organisatie, zonder een nieuwe organisatie
+// aan te maken) en DELETE (lidmaatschap verwijderen) zijn nieuw.
 // ---------------------------------------------------------------------
 async function handleUsers(req, res, supabase, auth) {
   if (!requireAdmin(auth, res)) return;
@@ -313,7 +315,88 @@ async function handleUsers(req, res, supabase, auth) {
     if (organization_id) query = query.eq("organization_id", organization_id);
     const { data, error } = await query;
     if (error) { res.status(500).json({ error: "Kon gebruikers niet ophalen." }); return; }
-    res.status(200).json(data || []);
+    // Zelfde, al bewezen verrijkingspatroon als resendInvite/organizations-detail:
+    // e-mail leeft in auth.users, niet in memberships zelf. Best-effort per
+    // rij — faalt een enkele lookup nooit de hele lijst.
+    const enriched = await Promise.all(
+      (data || []).map(async (m) => {
+        try {
+          const { data: userData } = await supabase.auth.admin.getUserById(m.user_id);
+          return { ...m, email: userData?.user?.email || null };
+        } catch {
+          return { ...m, email: null };
+        }
+      })
+    );
+    res.status(200).json(enriched);
+    return;
+  }
+
+  if (req.method === "POST") {
+    const body = req.body || {};
+    const organizationId = body.organization_id;
+    const email = (body.email || "").trim();
+    const role = body.role || "member";
+    if (!organizationId) { res.status(400).json({ error: "organization_id is verplicht." }); return; }
+    if (!email) { res.status(400).json({ error: "E-mailadres is verplicht." }); return; }
+    if (!["owner", "member"].includes(role)) { res.status(400).json({ error: "Ongeldige rol. Moet 'owner' of 'member' zijn." }); return; }
+
+    const { data: org } = await supabase.from("organizations").select("id").eq("id", organizationId).maybeSingle();
+    if (!org) { res.status(404).json({ error: "Organisatie niet gevonden." }); return; }
+
+    // Bestaat dit e-mailadres al als auth.users-account? Zelfde,
+    // bewezen paginering als in createOrganization — geen nieuwe uitnodiging
+    // nodig als de gebruiker al ergens anders een VELRIX-account heeft.
+    let existingUser = null;
+    try {
+      let page = 1;
+      while (!existingUser) {
+        const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+        if (error) throw error;
+        existingUser = data.users.find((u) => u.email?.toLowerCase() === email.toLowerCase()) || null;
+        if (existingUser || data.users.length < 200) break;
+        page += 1;
+      }
+    } catch (err) {
+      console.error("handleUsers POST — kon bestaande gebruikers niet doorzoeken:", err);
+      res.status(500).json({ error: "Kon niet controleren of dit e-mailadres al bestaat." });
+      return;
+    }
+
+    let userId;
+    let invited = false;
+    if (existingUser) {
+      userId = existingUser.id;
+    } else {
+      try {
+        const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+          redirectTo: "https://www.velrix.nl/portal/reset-password",
+        });
+        if (inviteError) throw inviteError;
+        userId = inviteData.user.id;
+        invited = true;
+      } catch (err) {
+        console.error("handleUsers POST — uitnodigen mislukt:", err);
+        res.status(500).json({ error: err.message || "Uitnodigen mislukt." });
+        return;
+      }
+    }
+
+    const { data: membership, error: memberError } = await supabase
+      .from("memberships")
+      .insert({ user_id: userId, organization_id: organizationId, role })
+      .select()
+      .maybeSingle();
+    if (memberError) {
+      // unique(user_id, organization_id) — deze gebruiker hoort al bij
+      // deze organisatie. Geen enkel account/uitnodiging wordt hier
+      // teruggedraaid (zelfde, bewuste keuze als bij createOrganization):
+      // als er zojuist wél een nieuw account is uitgenodigd, blijft dat
+      // gewoon bestaan — alleen de membership-insert zelf is mislukt.
+      res.status(409).json({ error: "Deze gebruiker is al lid van deze organisatie." });
+      return;
+    }
+    res.status(201).json({ ...membership, email, invited });
     return;
   }
 
@@ -323,11 +406,33 @@ async function handleUsers(req, res, supabase, auth) {
     const body = req.body || {};
     if (!body.organization_id) { res.status(400).json({ error: "organization_id is verplicht." }); return; }
     const updates = {};
-    if (body.role !== undefined) updates.role = body.role;
+    if (body.role !== undefined) {
+      if (!["owner", "member"].includes(body.role)) {
+        res.status(400).json({ error: "Ongeldige rol. Moet 'owner' of 'member' zijn." });
+        return;
+      }
+      updates.role = body.role;
+    }
     const { data, error } = await supabase.from("memberships").update(updates).eq("user_id", id).eq("organization_id", body.organization_id).select().maybeSingle();
     if (error) { res.status(500).json({ error: "Bijwerken mislukt." }); return; }
     if (!data) { res.status(404).json({ error: "Lidmaatschap niet gevonden." }); return; }
     res.status(200).json(data);
+    return;
+  }
+
+  if (req.method === "DELETE") {
+    const { id } = req.query || {}; // id = user_id
+    if (!id) { res.status(400).json({ error: "Ontbrekend id." }); return; }
+    const body = req.body || {};
+    if (!body.organization_id) { res.status(400).json({ error: "organization_id is verplicht." }); return; }
+    // Alleen het lidmaatschap wordt verwijderd — het auth.users-account
+    // zelf blijft altijd bestaan (kan immers bij andere organisaties
+    // horen, of later opnieuw ergens aan gekoppeld worden).
+    const { data: existing } = await supabase.from("memberships").select("id").eq("user_id", id).eq("organization_id", body.organization_id).maybeSingle();
+    if (!existing) { res.status(404).json({ error: "Lidmaatschap niet gevonden." }); return; }
+    const { error } = await supabase.from("memberships").delete().eq("user_id", id).eq("organization_id", body.organization_id);
+    if (error) { res.status(500).json({ error: "Verwijderen mislukt." }); return; }
+    res.status(200).json({ success: true });
     return;
   }
 

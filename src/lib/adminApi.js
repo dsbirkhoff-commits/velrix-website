@@ -46,7 +46,9 @@ export const adminApi = {
 
   // Users
   listUsers: (organizationId) => request(`/api/admin/index?resource=users${qs({ organization_id: organizationId })}`),
+  addUserToOrganization: (body) => request(`/api/admin/index?resource=users`, { method: "POST", body: JSON.stringify(body) }),
   updateUser: (userId, body) => request(`/api/admin/index?resource=users&id=${encodeURIComponent(userId)}`, { method: "PUT", body: JSON.stringify(body) }),
+  removeUserFromOrganization: (userId, organizationId) => request(`/api/admin/index?resource=users&id=${encodeURIComponent(userId)}`, { method: "DELETE", body: JSON.stringify({ organization_id: organizationId }) }),
 
   // Subscriptions
   listSubscriptions: (organizationId) => request(`/api/admin/index?resource=subscriptions${qs({ organization_id: organizationId })}`),
