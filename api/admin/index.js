@@ -777,6 +777,57 @@ async function handleReadOnlyOrgData(req, res, supabase, auth, table) {
 }
 
 // ---------------------------------------------------------------------
+// ---------------------------------------------------------------------
+// appointments — GET (ongewijzigd, zelfde vorm als voorheen) + PUT
+// (nieuw). Bewust GEEN POST/DELETE: afspraken ontstaan uitsluitend via
+// de bestaande boekingsflow. Annuleren gebeurt via status='geannuleerd'
+// (al een bestaande, bedoelde waarde in het schema), nooit via een hard
+// delete — de rij blijft altijd bestaan, ook na annuleren.
+// GEEN wijziging aan handleReadOnlyOrgData (blijft voor services/
+// ai_settings) en GEEN Google Calendar-synchronisatie in deze fase —
+// google_event_id/customer_id zijn hier bewust niet bewerkbaar.
+// ---------------------------------------------------------------------
+async function handleAppointments(req, res, supabase, auth) {
+  if (!requireAdmin(auth, res)) return;
+
+  if (req.method === "GET") {
+    const { organization_id } = req.query || {};
+    let query = supabase.from("appointments").select("*").order("datum", { ascending: false });
+    if (organization_id) query = query.eq("organization_id", organization_id);
+    const { data, error } = await query;
+    if (error) { res.status(500).json({ error: "Kon afspraken niet ophalen." }); return; }
+    res.status(200).json(data || []);
+    return;
+  }
+
+  if (req.method === "PUT") {
+    const { id } = req.query || {};
+    if (!id) { res.status(400).json({ error: "Ontbrekend id." }); return; }
+    const body = req.body || {};
+    const updates = {};
+    for (const key of ["datum", "tijd", "klantnaam", "email", "telefoonnummer", "type"]) {
+      if (body[key] !== undefined) updates[key] = body[key];
+    }
+    if (body.status !== undefined) {
+      if (!["bevestigd", "geannuleerd", "voltooid"].includes(body.status)) {
+        res.status(400).json({ error: "Ongeldige status. Moet 'bevestigd', 'geannuleerd' of 'voltooid' zijn." });
+        return;
+      }
+      updates.status = body.status;
+    }
+    // google_event_id en customer_id blijven bewust buiten 'updates' —
+    // geen enkele mogelijkheid om deze via de admin-UI te wijzigen.
+    const { data, error } = await supabase.from("appointments").update(updates).eq("id", id).select().maybeSingle();
+    if (error) { res.status(500).json({ error: "Bijwerken mislukt." }); return; }
+    if (!data) { res.status(404).json({ error: "Afspraak niet gevonden." }); return; }
+    res.status(200).json(data);
+    return;
+  }
+
+  res.status(405).json({ error: "Method not allowed" });
+}
+
+// ---------------------------------------------------------------------
 // invoices — volledige CRUD, admin-only (garages mogen alleen lezen via
 // hun eigen, bestaande organization.js?resource=invoices — ongewijzigd)
 // ---------------------------------------------------------------------
@@ -886,7 +937,7 @@ export default async function handler(req, res) {
     case "industries": return handleIndustries(req, res, supabase, auth);
     case "custom-field-templates": return handleTemplates(req, res, supabase, auth);
     case "customers": return handleAdminCustomers(req, res, supabase, auth);
-    case "appointments": return handleReadOnlyOrgData(req, res, supabase, auth, "appointments");
+    case "appointments": return handleAppointments(req, res, supabase, auth);
     case "services": return handleReadOnlyOrgData(req, res, supabase, auth, "services");
     case "ai_settings": return handleReadOnlyOrgData(req, res, supabase, auth, "ai_settings");
     case "invoices": return handleInvoices(req, res, supabase, auth);
