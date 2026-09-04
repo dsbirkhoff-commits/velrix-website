@@ -828,6 +828,87 @@ async function handleAppointments(req, res, supabase, auth) {
 }
 
 // ---------------------------------------------------------------------
+// services — volledige CRUD, admin-only. Geen enkele foreign-key-
+// afhankelijkheid elders (bevestigd tijdens de analyse — in
+// tegenstelling tot appointments.google_event_id), dus een echte
+// verwijdering is hier veilig, in tegenstelling tot bij appointments.
+// GEEN wijziging aan handleReadOnlyOrgData (blijft voor ai_settings) en
+// GEEN wijziging aan Portal's eigen Services.jsx/RLS.
+// ---------------------------------------------------------------------
+async function handleServices(req, res, supabase, auth) {
+  if (!requireAdmin(auth, res)) return;
+
+  if (req.method === "GET") {
+    const { organization_id } = req.query || {};
+    let query = supabase.from("services").select("*").order("naam", { ascending: true });
+    if (organization_id) query = query.eq("organization_id", organization_id);
+    const { data, error } = await query;
+    if (error) { res.status(500).json({ error: "Kon diensten niet ophalen." }); return; }
+    res.status(200).json(data || []);
+    return;
+  }
+
+  if (req.method === "POST") {
+    const body = req.body || {};
+    if (!body.organization_id || !body.naam) {
+      res.status(400).json({ error: "organization_id en naam zijn verplicht." });
+      return;
+    }
+    if (body.afspraakduur_minuten !== undefined && (!Number.isFinite(Number(body.afspraakduur_minuten)) || Number(body.afspraakduur_minuten) <= 0)) {
+      res.status(400).json({ error: "Afspraakduur moet een positief getal zijn." });
+      return;
+    }
+    const { data, error } = await supabase.from("services").insert({
+      organization_id: body.organization_id, naam: body.naam, beschrijving: body.beschrijving || null,
+      prijs: body.prijs ?? null, afspraakduur_minuten: body.afspraakduur_minuten ?? 30,
+      actief: body.actief !== undefined ? Boolean(body.actief) : true,
+    }).select().maybeSingle();
+    if (error) { res.status(500).json({ error: "Aanmaken mislukt." }); return; }
+    res.status(201).json(data);
+    return;
+  }
+
+  if (req.method === "PUT") {
+    const { id } = req.query || {};
+    if (!id) { res.status(400).json({ error: "Ontbrekend id." }); return; }
+    const body = req.body || {};
+    const updates = {};
+    if (body.naam !== undefined) {
+      if (!body.naam.trim()) { res.status(400).json({ error: "Naam mag niet leeg zijn." }); return; }
+      updates.naam = body.naam;
+    }
+    if (body.beschrijving !== undefined) updates.beschrijving = body.beschrijving;
+    if (body.prijs !== undefined) updates.prijs = body.prijs;
+    if (body.afspraakduur_minuten !== undefined) {
+      if (!Number.isFinite(Number(body.afspraakduur_minuten)) || Number(body.afspraakduur_minuten) <= 0) {
+        res.status(400).json({ error: "Afspraakduur moet een positief getal zijn." });
+        return;
+      }
+      updates.afspraakduur_minuten = body.afspraakduur_minuten;
+    }
+    if (body.actief !== undefined) updates.actief = Boolean(body.actief);
+    updates.updated_at = new Date().toISOString();
+    const { data, error } = await supabase.from("services").update(updates).eq("id", id).select().maybeSingle();
+    if (error) { res.status(500).json({ error: "Bijwerken mislukt." }); return; }
+    if (!data) { res.status(404).json({ error: "Dienst niet gevonden." }); return; }
+    res.status(200).json(data);
+    return;
+  }
+
+  if (req.method === "DELETE") {
+    const { id } = req.query || {};
+    if (!id) { res.status(400).json({ error: "Ontbrekend id." }); return; }
+    const { error, count } = await supabase.from("services").delete({ count: "exact" }).eq("id", id);
+    if (error) { res.status(500).json({ error: "Verwijderen mislukt." }); return; }
+    if (!count) { res.status(404).json({ error: "Dienst niet gevonden." }); return; }
+    res.status(200).json({ success: true });
+    return;
+  }
+
+  res.status(405).json({ error: "Method not allowed" });
+}
+
+// ---------------------------------------------------------------------
 // invoices — volledige CRUD, admin-only (garages mogen alleen lezen via
 // hun eigen, bestaande organization.js?resource=invoices — ongewijzigd)
 // ---------------------------------------------------------------------
@@ -938,7 +1019,7 @@ export default async function handler(req, res) {
     case "custom-field-templates": return handleTemplates(req, res, supabase, auth);
     case "customers": return handleAdminCustomers(req, res, supabase, auth);
     case "appointments": return handleAppointments(req, res, supabase, auth);
-    case "services": return handleReadOnlyOrgData(req, res, supabase, auth, "services");
+    case "services": return handleServices(req, res, supabase, auth);
     case "ai_settings": return handleReadOnlyOrgData(req, res, supabase, auth, "ai_settings");
     case "invoices": return handleInvoices(req, res, supabase, auth);
     case "overview": return handleOverview(req, res, supabase, auth);

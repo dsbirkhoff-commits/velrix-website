@@ -76,6 +76,9 @@ export const adminApi = {
   listOrgAppointments: (organizationId) => request(`/api/admin/index?resource=appointments&organization_id=${encodeURIComponent(organizationId)}`),
   updateOrgAppointment: (id, body) => request(`/api/admin/index?resource=appointments&id=${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(body) }),
   listOrgServices: (organizationId) => request(`/api/admin/index?resource=services&organization_id=${encodeURIComponent(organizationId)}`),
+  createService: (body) => request(`/api/admin/index?resource=services`, { method: "POST", body: JSON.stringify(body) }),
+  updateService: (id, body) => request(`/api/admin/index?resource=services&id=${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteService: (id) => request(`/api/admin/index?resource=services&id=${encodeURIComponent(id)}`, { method: "DELETE" }),
   getOrgAiSettings: (organizationId) => request(`/api/admin/index?resource=ai_settings&organization_id=${encodeURIComponent(organizationId)}`),
 
   // Invoices
